@@ -1,0 +1,2166 @@
+<!doctype html>
+<html lang="id" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game Monopoli Zonasi Penataan Ruang Laut</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <style>
+        body {
+            box-sizing: border-box;
+        }
+        
+        @import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700;800;900&display=swap');
+        
+        * {
+            font-family: 'Exo 2', sans-serif;
+        }
+        
+        .board-cell {
+            position: absolute;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border: 1.5px solid #0c4a6e;
+            background: white;
+            font-size: 5px;
+            text-align: center;
+            padding: 2px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        @media (min-width: 640px) {
+            .board-cell {
+                border-width: 2px;
+                font-size: 6px;
+                padding: 2.5px;
+            }
+        }
+        
+        @media (min-width: 768px) {
+            .board-cell {
+                border-width: 2.5px;
+                font-size: 7px;
+                padding: 3px;
+            }
+        }
+        
+        .board-cell:hover {
+            transform: scale(1.08);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+            z-index: 20;
+        }
+        
+        .board-cell.owned {
+            border: 3px solid #fbbf24;
+            box-shadow: 0 0 15px rgba(251, 191, 36, 0.6);
+        }
+        
+        .player-token {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1.5px solid white;
+            position: absolute;
+            transition: all 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            font-size: 7px;
+            color: white;
+            z-index: 30;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+        }
+        
+        @media (min-width: 640px) {
+            .player-token {
+                width: 15px;
+                height: 15px;
+                border-width: 2px;
+                font-size: 8px;
+                box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+            }
+        }
+        
+        @media (min-width: 768px) {
+            .player-token {
+                width: 18px;
+                height: 18px;
+                border-width: 2.5px;
+                font-size: 9px;
+                box-shadow: 0 3px 10px rgba(0,0,0,0.5);
+            }
+        }
+        
+        .dice {
+            width: 35px;
+            height: 35px;
+            background: white;
+            border: 2px solid #0c4a6e;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        @media (min-width: 640px) {
+            .dice {
+                width: 45px;
+                height: 45px;
+                border-width: 2.5px;
+                border-radius: 10px;
+                font-size: 24px;
+                box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+            }
+        }
+        
+        @media (min-width: 768px) {
+            .dice {
+                width: 50px;
+                height: 50px;
+                border-width: 3px;
+                border-radius: 12px;
+                font-size: 28px;
+                box-shadow: 0 6px 12px rgba(0,0,0,0.2);
+            }
+        }
+        
+        .dice:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+        }
+        
+        .dice:active {
+            transform: scale(0.95);
+        }
+        
+        @keyframes roll {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            25% { transform: rotate(90deg) scale(1.1); }
+            50% { transform: rotate(180deg) scale(1); }
+            75% { transform: rotate(270deg) scale(1.1); }
+        }
+        
+        .rolling {
+            animation: roll 0.6s ease-in-out;
+        }
+        
+        .property-color {
+            height: 15px;
+            width: 100%;
+            border-radius: 4px 4px 0 0;
+            margin-bottom: 2px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.75);
+            backdrop-filter: blur(5px);
+        }
+        
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 32px;
+            border-radius: 20px;
+            max-width: 550px;
+            width: 90%;
+            max-height: 85%;
+            overflow-y: auto;
+            box-shadow: 0 25px 70px rgba(0,0,0,0.5);
+            animation: slideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        
+        .btn {
+            padding: 14px 28px;
+            border-radius: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: none;
+            font-size: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .toast {
+            position: fixed;
+            top: 24px;
+            right: 24px;
+            background: white;
+            padding: 18px 26px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+            z-index: 2000;
+            animation: slideInRight 0.4s ease;
+            max-width: 380px;
+            border-left: 5px solid #3b82f6;
+        }
+        
+        @keyframes slideInRight {
+            from {
+                opacity: 0;
+                transform: translateX(120px);
+            }
+            to {
+                opacity: 1;
+                transform: translateX(0);
+            }
+        }
+        
+        .owner-badge {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid white;
+            z-index: 10;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .level-badge {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+            color: white;
+            font-size: 8px;
+            padding: 2px 5px;
+            border-radius: 50%;
+            font-weight: 900;
+            z-index: 10;
+            box-shadow: 0 2px 6px rgba(251, 191, 36, 0.6);
+            border: 2px solid white;
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .info-box {
+            background: white;
+            border-radius: 12px;
+            padding: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .mode-card {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 3px solid transparent;
+        }
+        
+        .mode-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+            border-color: #0284c7;
+        }
+        
+        .info-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .difficulty-badge {
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s;
+            border: 3px solid transparent;
+        }
+        
+        .difficulty-badge.selected {
+            border-color: #0284c7;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
+        }
+        
+        .difficulty-badge:hover {
+            transform: scale(1.05);
+        }
+    </style>
+  <style>@view-transition { navigation: auto; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full w-full overflow-auto"><!-- Mode Selection Screen -->
+  <div id="modeScreen" class="h-full w-full p-3 sm:p-4 md:p-6" style="display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #0c4a6e 0%, #0891b2 100%);">
+   <div class="max-w-4xl w-full">
+    <div class="text-center mb-4 sm:mb-6 md:mb-8">
+     <h1 id="mainTitle" class="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-extrabold mb-2 sm:mb-3 text-white">Game Monopoli Zonasi Penataan Ruang Laut</h1>
+     <p id="mainTagline" class="text-sm sm:text-base md:text-lg lg:text-xl text-cyan-100 font-medium">Edukasi Penataan Ruang Laut Indonesia</p>
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 md:gap-6 mb-4 sm:mb-5 md:mb-6">
+     <div class="mode-card" onclick="showAIPlayerSelect()">
+      <div class="text-4xl sm:text-5xl md:text-6xl mb-3 sm:mb-4 text-center">
+       🤖
+      </div>
+      <h3 class="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 mb-1 sm:mb-2 text-center">1 vs Komputer</h3>
+      <p class="text-xs sm:text-sm md:text-base text-gray-600 text-center mb-3 sm:mb-4">Bermain melawan AI dengan 3 tingkat kesulitan</p>
+      <div class="flex justify-center"><span class="info-badge text-xs sm:text-sm" style="background: #dbeafe; color: #0c4a6e;"> 🎯 Mode Latihan </span>
+      </div>
+     </div>
+     <div class="mode-card" onclick="showMultiplayerSelect()">
+      <div class="text-4xl sm:text-5xl md:text-6xl mb-3 sm:mb-4 text-center">
+       👤👤👤👤
+      </div>
+      <h3 class="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 mb-1 sm:mb-2 text-center">Multiplayer</h3>
+      <p class="text-xs sm:text-sm md:text-base text-gray-600 text-center mb-3 sm:mb-4">Bermain bersama 2-4 pemain secara bergantian</p>
+      <div class="flex justify-center"><span class="info-badge text-xs sm:text-sm" style="background: #dcfce7; color: #059669;"> 🏆 Mode Kompetitif </span>
+      </div>
+     </div>
+    </div><!-- Player Selection Modal -->
+    <div id="playerSelectModal" class="hidden bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 md:p-8 max-w-md mx-auto shadow-2xl border-4" style="border-color: #0891b2;">
+     <h3 class="text-xl sm:text-2xl font-bold text-gray-800 mb-3 sm:mb-4 text-center" id="playerSelectTitle">Pilih Jumlah Pemain</h3><!-- AI Difficulty Selection -->
+     <div id="difficultySection" class="mb-4 sm:mb-6 hidden">
+      <h4 class="text-base sm:text-lg font-bold text-gray-700 mb-2 sm:mb-3 text-center">Tingkat Kesulitan AI</h4>
+      <div class="grid grid-cols-3 gap-2 sm:gap-3">
+       <div class="difficulty-badge text-center" style="background: #dcfce7; color: #059669;" onclick="selectDifficulty('easy')">
+        <div class="text-2xl mb-1">
+         😊
+        </div>
+        <div>
+         MUDAH
+        </div>
+       </div>
+       <div class="difficulty-badge text-center selected" style="background: #fef3c7; color: #d97706;" onclick="selectDifficulty('medium')">
+        <div class="text-2xl mb-1">
+         🤔
+        </div>
+        <div>
+         LUMAYAN
+        </div>
+       </div>
+       <div class="difficulty-badge text-center" style="background: #fee2e2; color: #dc2626;" onclick="selectDifficulty('hard')">
+        <div class="text-2xl mb-1">
+         😤
+        </div>
+        <div>
+         SULIT
+        </div>
+       </div>
+      </div>
+      <div class="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+       <p id="difficultyDesc" class="text-xs text-blue-800 text-center font-semibold">AI strategi seimbang, upgrade 50%, beli zona 60%</p>
+      </div>
+     </div>
+     <div class="grid grid-cols-2 gap-4 mb-6"><button onclick="startGame('ai', 2)" class="p-6 bg-blue-50 hover:bg-blue-100 rounded-xl border-2 border-blue-300 hover:border-blue-500 transition-all" id="ai2">
+       <div class="text-4xl mb-2">
+        👤🤖
+       </div>
+       <div class="font-bold text-gray-800">
+        1 vs 1 AI
+       </div></button> <button onclick="startGame('ai', 3)" class="p-6 bg-blue-50 hover:bg-blue-100 rounded-xl border-2 border-blue-300 hover:border-blue-500 transition-all" id="ai3">
+       <div class="text-4xl mb-2">
+        👤🤖🤖
+       </div>
+       <div class="font-bold text-gray-800">
+        1 vs 2 AI
+       </div></button> <button onclick="startGame('ai', 4)" class="p-6 bg-blue-50 hover:bg-blue-100 rounded-xl border-2 border-blue-300 hover:border-blue-500 transition-all" id="ai4">
+       <div class="text-4xl mb-2">
+        👤🤖🤖🤖
+       </div>
+       <div class="font-bold text-gray-800">
+        1 vs 3 AI
+       </div></button> <button onclick="startGame('multiplayer', 2)" class="p-6 bg-green-50 hover:bg-green-100 rounded-xl border-2 border-green-300 hover:border-green-500 transition-all" id="mp2">
+       <div class="text-4xl mb-2">
+        👤👤
+       </div>
+       <div class="font-bold text-gray-800">
+        2 Pemain
+       </div></button> <button onclick="startGame('multiplayer', 3)" class="p-6 bg-green-50 hover:bg-green-100 rounded-xl border-2 border-green-300 hover:border-green-500 transition-all" id="mp3">
+       <div class="text-4xl mb-2">
+        👤👤👤
+       </div>
+       <div class="font-bold text-gray-800">
+        3 Pemain
+       </div></button> <button onclick="startGame('multiplayer', 4)" class="p-6 bg-green-50 hover:bg-green-100 rounded-xl border-2 border-green-300 hover:border-green-500 transition-all" id="mp4">
+       <div class="text-4xl mb-2">
+        👤👤👤👤
+       </div>
+       <div class="font-bold text-gray-800">
+        4 Pemain
+       </div></button>
+     </div><button onclick="hidePlayerSelect()" class="w-full btn text-gray-700" style="background: #e5e7eb;"> ← Kembali </button>
+    </div>
+    <div class="bg-cyan-50 border-l-4 border-cyan-600 p-4 rounded-lg">
+     <p class="text-sm text-cyan-900"><strong>📚 Sistem Baru:</strong> Level zona (0-3), upgrade dengan investasi, nilai properti real-time, bonus konservasi Rp 500k! <strong>⚠️ Aturan:</strong> (1) Pemain harus dapat dadu ganda untuk mulai bergerak pertama kali, (2) Upgrade hanya bisa dilakukan saat berada di zona milik Anda, (3) Pemain lawan dapat membeli zona milik Anda dengan harga buyout (markup 50%)!</p>
+    </div>
+   </div>
+  </div><!-- Game Screen -->
+  <div id="gameScreen" class="h-full w-full p-4 md:p-6" style="display: none; background: linear-gradient(135deg, #0c4a6e 0%, #0891b2 100%);">
+   <div class="max-w-7xl mx-auto">
+    <div class="text-center mb-4">
+     <h1 id="gameTitle" class="text-3xl md:text-4xl font-extrabold mb-2 text-white">Game Monopoli Zonasi Penataan Ruang Laut</h1>
+     <p id="gameTagline" class="text-sm md:text-base text-cyan-100 font-medium">Edukasi Penataan Ruang Laut Indonesia</p>
+    </div>
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-3 sm:gap-4 md:gap-6"><!-- Left Panel -->
+     <div class="lg:order-1 hidden lg:block">
+      <div class="info-box mb-4">
+       <h3 class="font-bold text-sm mb-3 text-gray-800 border-b pb-2">💎 Nilai Properti Pemain</h3>
+       <div id="propertyValues" class="space-y-2"></div>
+      </div>
+      <div class="info-box mb-4">
+       <h3 class="font-bold text-sm mb-2 text-gray-800">⭐ Sistem Level Zona</h3>
+       <div class="text-xs space-y-1 text-gray-700">
+        <div class="flex justify-between"><span>Lv 0: Dasar</span> <span class="font-bold">1x sewa</span>
+        </div>
+        <div class="flex justify-between"><span>Lv 1: Pengelolaan</span> <span class="font-bold text-blue-600">1.5x sewa</span>
+        </div>
+        <div class="flex justify-between"><span>Lv 2: Optimalisasi</span> <span class="font-bold text-purple-600">2.5x sewa</span>
+        </div>
+        <div class="flex justify-between"><span>Lv 3: Berkelanjutan</span> <span class="font-bold text-green-600">4x sewa</span>
+        </div>
+       </div>
+       <div class="mt-3 pt-2 border-t text-xs">
+        <div class="font-bold text-green-700 mb-1">
+         🌱 Bonus Konservasi:
+        </div>
+        <div class="text-gray-600">
+         Upgrade zona konservasi ke Lv 3 = +Rp 500.000!
+        </div>
+       </div>
+      </div>
+      <div class="info-box mb-4">
+       <h3 class="font-bold text-sm mb-2 text-gray-800">💰 Biaya Upgrade</h3>
+       <div class="text-xs space-y-1 text-gray-700">
+        <div class="flex justify-between"><span>Lv 0→1:</span> <span class="font-bold">50% harga</span>
+        </div>
+        <div class="flex justify-between"><span>Lv 1→2:</span> <span class="font-bold">75% harga</span>
+        </div>
+        <div class="flex justify-between"><span>Lv 2→3:</span> <span class="font-bold">100% harga</span>
+        </div>
+       </div>
+      </div>
+      <div class="info-box">
+       <h3 class="font-bold text-sm mb-2 text-gray-800">⚠️ Aturan Penting</h3>
+       <div class="text-xs space-y-2 text-gray-700">
+        <div class="p-2 bg-blue-50 border border-blue-300 rounded">
+         <div class="font-bold text-blue-800 mb-1">
+          🎲 Mulai Permainan
+         </div>
+         <div class="text-blue-700">
+          Harus dapat dadu ganda untuk mulai bergerak pertama kali
+         </div>
+        </div>
+        <div class="p-2 bg-yellow-50 border border-yellow-300 rounded">
+         <div class="font-bold text-yellow-800 mb-1">
+          📍 Upgrade Zona
+         </div>
+         <div class="text-yellow-700">
+          Hanya bisa upgrade saat berada di posisi zona milik Anda
+         </div>
+        </div>
+        <div class="p-2 bg-orange-50 border border-orange-300 rounded">
+         <div class="font-bold text-orange-800 mb-1">
+          💰 Beli dari Lawan
+         </div>
+         <div class="text-orange-700">
+          Dapat membeli zona lawan dengan markup +50%
+         </div>
+        </div>
+       </div>
+      </div>
+     </div><!-- Game Board -->
+     <div class="lg:col-span-2 lg:order-2">
+      <div class="bg-gradient-to-br from-cyan-50 via-blue-50 to-cyan-100 p-2 sm:p-3 md:p-4 lg:p-6 rounded-xl sm:rounded-2xl shadow-2xl border-2 sm:border-4" style="aspect-ratio: 1/1; position: relative; border-color: #0c4a6e;">
+       <div id="board" style="position: relative; width: 100%; height: 100%;"></div>
+       <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); text-align: center; pointer-events: none;">
+        <div style="margin-bottom: 4px sm:margin-bottom: 8px;"><img src="https://www.kkp.go.id/assets/brand/struktur_organisasi/logo_1.svg" alt="Logo KKP" class="w-8 h-8 sm:w-12 sm:h-12 md:w-16 md:h-16" style="display: block; margin: 0 auto;" loading="lazy" onerror="console.error('Image failed to load:', this.src); this.style.display='none';">
+        </div>
+        <div id="centerTitle" class="text-[7px] sm:text-[9px] md:text-[11px] font-extrabold sm:font-black" style="color: #0c4a6e; text-shadow: 0 2px 4px rgba(0,0,0,0.1); letter-spacing: 0.5px; line-height: 1.3; max-width: 120px sm:max-width-150px md:max-width: 180px; margin: 0 auto;">
+         Kementerian Kelautan dan Perikanan
+        </div>
+        <div id="centerDirectorate" class="text-[5px] sm:text-[6px] md:text-[7px] font-semibold mt-1 sm:mt-2 md:mt-3" style="color: #0284c7; letter-spacing: 0.2px; line-height: 1.3; max-width: 120px sm:max-width: 150px md:max-width: 180px; margin-left: auto; margin-right: auto;">
+         Direktorat Pembinaan Ruang Laut (PRL)
+        </div>
+        <div id="centerSubtitle" class="text-[6px] sm:text-[7px] md:text-[8px] font-bold mt-2 sm:mt-3 md:mt-4" style="color: #0369a1; letter-spacing: 0.3px; line-height: 1.4; max-width: 120px sm:max-width: 150px md:max-width: 180px; margin-left: auto; margin-right: auto;">
+         "Laut Tertata, Ekosistem Terjaga, Masyarakat Sejahtera"
+        </div>
+        <div class="flex gap-2 sm:gap-3 justify-center mt-2 sm:mt-3 md:mt-5" style="pointer-events: auto;">
+         <div id="dice1" class="dice" style="width: 30px; height: 30px; font-size: 18px; border-radius: 8px; border-width: 2px;">
+          🎲
+         </div>
+         <div id="dice2" class="dice" style="width: 30px; height: 30px; font-size: 18px; border-radius: 8px; border-width: 2px;">
+          🎲
+         </div>
+        </div><button id="rollBtnCenter" class="btn text-white shadow-lg mt-2 sm:mt-3 text-xs sm:text-sm" style="pointer-events: auto; padding: 8px 16px sm:padding: 10px 20px md:padding: 12px 24px; background: #0c4a6e;"> 🎲 Lempar Dadu </button>
+       </div>
+      </div>
+     </div><!-- Right Panel -->
+     <div class="space-y-4 lg:order-3"><!-- Current Player -->
+      <div class="bg-white p-4 md:p-5 rounded-xl shadow-lg border-2 border-cyan-200">
+       <h2 class="text-base md:text-lg font-bold mb-4 text-gray-800 flex items-center gap-2"><span>⚡</span> Giliran Pemain</h2>
+       <div class="flex items-center gap-3 mb-4">
+        <div id="currentPlayerToken" class="w-14 h-14 rounded-full flex items-center justify-center text-white font-extrabold text-xl shadow-xl border-3"></div>
+        <div class="flex-1">
+         <div id="currentPlayerName" class="font-bold text-base md:text-lg"></div>
+         <div id="currentPlayerMoney" class="text-green-600 font-bold text-sm"></div>
+         <div id="currentPlayerZones" class="text-blue-600 text-xs mt-1 font-semibold"></div>
+        </div>
+       </div>
+       <div id="jailStatus" class="hidden mb-4 p-3 bg-red-50 border-2 border-red-300 rounded-lg">
+        <div class="text-red-800 text-sm font-bold flex items-center gap-2"><span>🚨</span> Penertiban Zonasi
+        </div>
+        <div id="jailTurns" class="text-red-700 text-xs mt-1 font-semibold"></div>
+        <div class="text-red-700 text-xs mt-2 font-medium">
+         💰 Denda: Rp 500.000
+        </div><button id="payJailBtn" class="btn mt-3 w-full text-white text-sm" style="background: #dc2626;"> 💰 Bayar Denda </button>
+       </div><button id="rollBtn" class="btn w-full text-white text-sm md:text-base shadow-lg" style="display: none; background: #0c4a6e;"> 🎲 Lempar Dadu </button>
+      </div><!-- Players List -->
+      <div class="bg-white p-4 md:p-5 rounded-xl shadow-lg border-2 border-cyan-200">
+       <h2 class="text-base md:text-lg font-bold mb-4 text-gray-800 flex items-center gap-2"><span>👥</span> Daftar Pemain</h2>
+       <div id="playersList" class="space-y-2"></div>
+      </div><!-- Game Info & History -->
+      <div class="bg-white p-4 md:p-5 rounded-xl shadow-lg border-2 border-cyan-200">
+       <h2 class="text-base md:text-lg font-bold mb-4 text-gray-800 flex items-center gap-2"><span>📖</span> Panduan &amp; Histori</h2><!-- Game Rules Section -->
+       <div class="mb-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+        <h3 class="text-sm font-bold text-blue-900 mb-2">🎯 Cara Bermain</h3>
+        <div class="space-y-2 text-xs text-blue-800">
+         <div class="flex items-start gap-2"><span class="flex-shrink-0">1️⃣</span> <span><strong>Mulai:</strong> Harus dapat dadu ganda (contoh: 3-3, 5-5) untuk bergerak pertama kali</span>
+         </div>
+         <div class="flex items-start gap-2"><span class="flex-shrink-0">2️⃣</span> <span><strong>Beli Zona:</strong> Zona kosong bisa dibeli setelah putaran pertama selesai</span>
+         </div>
+         <div class="flex items-start gap-2"><span class="flex-shrink-0">3️⃣</span> <span><strong>Upgrade:</strong> Hanya bisa upgrade saat berada DI zona milik Anda (Level 0-3)</span>
+         </div>
+         <div class="flex items-start gap-2"><span class="flex-shrink-0">4️⃣</span> <span><strong>Beli dari Lawan:</strong> Dapat beli zona lawan dengan harga +50% markup</span>
+         </div>
+         <div class="flex items-start gap-2"><span class="flex-shrink-0">5️⃣</span> <span><strong>Bonus:</strong> Lewat START = Rp 2jt, Upgrade konservasi Lv3 = +Rp 500k</span>
+         </div>
+        </div>
+       </div><!-- History Section -->
+       <div>
+        <h3 class="text-sm font-bold text-gray-700 mb-2">📜 Riwayat Pergerakan</h3>
+        <div id="playerHistory" class="space-y-2 max-h-48 overflow-y-auto">
+         <div class="text-xs text-gray-500 text-center py-4">
+          Histori akan muncul setelah pemain bergerak
+         </div>
+        </div>
+       </div>
+      </div>
+     </div>
+    </div>
+   </div>
+  </div><!-- Property Modal -->
+  <div id="propertyModal" class="modal">
+   <div class="modal-content">
+    <div id="propertyModalContent"></div>
+   </div>
+  </div><!-- Card Modal -->
+  <div id="cardModal" class="modal">
+   <div class="modal-content">
+    <div id="cardModalContent"></div>
+   </div>
+  </div>
+  <script>
+        const defaultConfig = {
+            game_title: "Game Monopoli Zonasi Penataan Ruang Laut",
+            tagline: "Edukasi Penataan Ruang Laut Indonesia",
+            center_title: "Kementerian Kelautan dan Perikanan",
+            center_directorate: "Direktorat Jendral Penataan Ruang Laut - Direktorat Pembinaan Penataan Ruang Laut",
+            center_subtitle: '"Laut Tertata, Ekosistem Terjaga, Masyarakat Sejahtera"',
+            start_money: "Rp 15.000.000",
+            start_bonus: "Rp 2.000.000",
+            primary_color: "#0c4a6e",
+            secondary_color: "#0891b2",
+            background_color: "#0c4a6e",
+            text_color: "#f0f9ff",
+            accent_color: "#fbbf24",
+            font_family: "Exo 2",
+            font_size: 16
+        };
+
+        let config = { ...defaultConfig };
+        let aiDifficulty = 'medium';
+
+        const zones = [
+            { name: "MULAI ZONASI", type: "start", icon: "🚀", color: null, price: 0, rent: 0, block: null, category: "start", desc: "Pemerintah memberikan dukungan awal pengelolaan ruang laut", impact: "Melewati START: +Rp 2.000.000", benefit: "Modal awal untuk pengelolaan zonasi laut Indonesia", regulation: "UU No. 32/2014 tentang Kelautan", canUpgrade: false },
+            
+            { name: "Perikanan Tangkap", type: "property", icon: "🎣", color: "#92400e", price: 600000, rent: 60000, block: "I", category: "pemanfaatan", desc: "Zona pemanfaatan sumber daya ikan dengan aturan kuota", impact: "Kuota berkelanjutan berdasarkan Maximum Sustainable Yield (MSY)", benefit: "Produksi ikan nasional, lapangan kerja nelayan, ketahanan pangan", regulation: "Permen KP No. 18/2021 tentang Jalur Penangkapan Ikan", canUpgrade: true, upgradeType: "Infrastruktur cold storage, kapal tangkap modern, teknologi tangkap ramah lingkungan" },
+            { name: "Dana Umum", type: "community_chest", icon: "📋", color: null, price: 0, rent: 0, block: null, category: "card", desc: "Kartu Peraturan: pajak, denda, atau audit", impact: "Ambil kartu peraturan", benefit: "Kepatuhan terhadap regulasi kelautan", regulation: "Peraturan Pemerintah tentang Tata Ruang Laut", canUpgrade: false },
+            { name: "Perikanan Budidaya", type: "property", icon: "🦐", color: "#92400e", price: 600000, rent: 60000, block: "I", category: "pemanfaatan", desc: "Kegiatan budidaya laut berkelanjutan", impact: "Teknologi ramah lingkungan, sertifikasi CBIB", benefit: "Produksi udang & rumput laut, ekspor produk budidaya, ekonomi pesisir", regulation: "Permen KP No. 75/2016 tentang Pedoman Umum Pembesaran Ikan", canUpgrade: true, upgradeType: "Keramba modern, sistem bioflok, pakan organik, monitoring kualitas air" },
+            { name: "Pajak Pemanfaatan Laut", type: "tax", icon: "💰", color: null, price: 200000, rent: 0, block: null, category: "tax", desc: "Penerimaan Negara Bukan Pajak (PNBP)", impact: "Bayar Rp 200.000", benefit: "Dana untuk konservasi dan pengawasan laut", regulation: "PP No. 82/2019 tentang Jenis dan Tarif PNBP", canUpgrade: false },
+            { name: "Pelabuhan Barat", type: "station", icon: "⚓", color: null, price: 2000000, rent: 250000, block: null, category: "station", desc: "Simpul logistik regional", impact: "Sewa naik jika punya >1 stasiun", benefit: "Hub logistik, perdagangan internasional, penerimaan pelabuhan", regulation: "UU No. 17/2008 tentang Pelayaran", canUpgrade: false },
+            { name: "Pelabuhan", type: "property", icon: "🚢", color: "#0284c7", price: 1000000, rent: 100000, block: "II", category: "pemanfaatan", desc: "Infrastruktur utama distribusi laut", impact: "Hub perdagangan maritim nasional", benefit: "Konektivitas antar pulau, ekspor-impor, pertumbuhan ekonomi", regulation: "Permen Perhubungan No. 51/2015 tentang Penyelenggaraan Pelabuhan", canUpgrade: true, upgradeType: "Dermaga modern, crane otomatis, terminal kontainer, sistem digital" },
+            { name: "Kartu Kesempatan", type: "chance", icon: "🎴", color: null, price: 0, rent: 0, block: null, category: "card", desc: "Kartu Kebijakan: insentif atau program nasional", impact: "Ambil kartu kebijakan", benefit: "Program pemerintah untuk sektor maritim", regulation: "Kebijakan Ekonomi Biru Indonesia", canUpgrade: false },
+            { name: "Alur Pelayaran", type: "property", icon: "🛳️", color: "#0284c7", price: 1000000, rent: 100000, block: "II", category: "pemanfaatan", desc: "Jalur kapal niaga dan logistik", impact: "Konektivitas internasional & tol laut", benefit: "Efisiensi distribusi, stabilitas harga, akses daerah terpencil", regulation: "Perpres No. 16/2017 tentang Kebijakan Kelautan Indonesia", canUpgrade: true, upgradeType: "Pengerukan alur, sistem navigasi, rambu-rambu pelayaran, patrol keamanan" },
+            { name: "Pariwisata Bahari", type: "property", icon: "🏖️", color: "#0284c7", price: 1200000, rent: 120000, block: "II", category: "pemanfaatan", desc: "Wisata laut berbasis ekosistem", impact: "Devisa negara & ekonomi lokal", benefit: "Penyerapan tenaga kerja, pelestarian budaya, pembangunan daerah", regulation: "Permen KP No. 17/2019 tentang Pengelolaan Kawasan Konservasi", canUpgrade: true, upgradeType: "Homestay ramah lingkungan, diving center, eduwisata, restoran lokal" },
+            
+            { name: "PENERTIBAN ZONASI", type: "jail", icon: "🚨", color: null, price: 0, rent: 0, block: null, category: "jail", desc: "Terkena sanksi pelanggaran zonasi", impact: "Tidak dapat sewa, bayar Rp 500k", benefit: "Penegakan hukum tata ruang laut", regulation: "Sanksi UU No. 32/2014 tentang Kelautan", canUpgrade: false },
+            
+            { name: "Industri Kelautan", type: "property", icon: "🏭", color: "#8b5cf6", price: 1400000, rent: 140000, block: "III", category: "pemanfaatan", desc: "Kawasan industri pendukung maritim", impact: "Manufaktur berbasis laut, pengolahan hasil tangkapan", benefit: "Nilai tambah produk, lapangan kerja, substitusi impor", regulation: "Permen Perindustrian tentang Kawasan Industri", canUpgrade: true, upgradeType: "Pabrik pengolahan ikan, cold chain, quality control, sertifikasi ekspor" },
+            { name: "Kabel Bawah Laut", type: "utility", icon: "🔌", color: null, price: 1500000, rent: 0, block: null, category: "utility", desc: "Infrastruktur digital maritim", impact: "Sewa 4× dadu jika punya 1, 10× jika punya 2", benefit: "Konektivitas internet, ekonomi digital, pulau terluar terhubung", regulation: "UU No. 36/1999 tentang Telekomunikasi", canUpgrade: false },
+            { name: "Energi Terbarukan Laut", type: "property", icon: "⚡", color: "#8b5cf6", price: 1400000, rent: 140000, block: "III", category: "pemanfaatan", desc: "Arus, gelombang, panas laut (OTEC)", impact: "Energi hijau masa depan Indonesia", benefit: "Listrik terbarukan, pengurangan emisi karbon, energi mandiri", regulation: "Permen ESDM tentang Energi Baru Terbarukan", canUpgrade: true, upgradeType: "Turbin gelombang, panel surya terapung, PLTAL, riset teknologi" },
+            { name: "Tambak Laut", type: "property", icon: "🦑", color: "#8b5cf6", price: 1600000, rent: 160000, block: "III", category: "pemanfaatan", desc: "Produksi perikanan terkontrol", impact: "Pangan berkelanjutan, zero waste", benefit: "Produksi massal, kualitas terjamin, ekspor premium", regulation: "Permen KP No. 28/2018 tentang Cara Budidaya Ikan yang Baik", canUpgrade: true, upgradeType: "Sistem RAS (Recirculating), monitoring IoT, pakan formulasi khusus" },
+            { name: "Pelabuhan Timur", type: "station", icon: "⚓", color: null, price: 2000000, rent: 250000, block: null, category: "station", desc: "Gerbang maritim timur Indonesia", impact: "Sewa naik jika punya >1 stasiun", benefit: "Konektivitas Papua & Maluku, distribusi BBM, akses kesehatan & pendidikan", regulation: "UU No. 17/2008 tentang Pelayaran", canUpgrade: false },
+            { name: "Galangan Kapal", type: "property", icon: "⚙️", color: "#f97316", price: 1800000, rent: 180000, block: "IV", category: "pemanfaatan", desc: "Perawatan dan pembuatan kapal", impact: "Industri strategis nasional, substitusi impor kapal", benefit: "Lapangan kerja, transfer teknologi, armada nasional modern", regulation: "Perpres No. 5/2005 tentang Industri Galangan Kapal", canUpgrade: true, upgradeType: "Dok kering modern, teknologi las otomatis, desain kapal ramah lingkungan" },
+            { name: "Dana Umum", type: "community_chest", icon: "📋", color: null, price: 0, rent: 0, block: null, category: "card", desc: "Kartu Peraturan: pajak, denda, atau audit", impact: "Ambil kartu peraturan", benefit: "Kepatuhan terhadap regulasi kelautan", regulation: "Peraturan Pemerintah tentang Tata Ruang Laut", canUpgrade: false },
+            { name: "Sentra Logistik Laut", type: "property", icon: "📦", color: "#f97316", price: 1800000, rent: 180000, block: "IV", category: "pemanfaatan", desc: "Pusat distribusi maritim", impact: "Rantai pasok efisien, stabilitas harga", benefit: "Pemerataan ekonomi, akses pasar, logistik terintegrasi", regulation: "Perpres No. 26/2012 tentang Cetak Biru Sistem Logistik Nasional", canUpgrade: true, upgradeType: "Gudang otomatis, sistem tracking real-time, cold storage regional" },
+            { name: "Jalur Pelayaran Nusantara", type: "property", icon: "🗺️", color: "#f97316", price: 2000000, rent: 200000, block: "IV", category: "pemanfaatan", desc: "Konektivitas antar pulau", impact: "Integrasi wilayah maritim, tol laut", benefit: "Pemerataan pembangunan, akses layanan dasar, ketahanan nasional", regulation: "Perpres No. 16/2017 tentang Kebijakan Kelautan", canUpgrade: true, upgradeType: "Kapal pionir baru, subsidi angkutan, teknologi navigasi satelit" },
+            
+            { name: "LAUT BEBAS KONFLIK", type: "free_parking", icon: "🅿️", color: null, price: 0, rent: 0, block: null, category: "parking", desc: "Zona aman tanpa transaksi", impact: "Tidak ada biaya atau pendapatan", benefit: "Zona netral, diplomasi maritim", regulation: "Konvensi Hukum Laut Internasional (UNCLOS)", canUpgrade: false },
+            
+            { name: "Terumbu Karang", type: "property", icon: "🪸", color: "#dc2626", price: 2200000, rent: 220000, block: "V", category: "konservasi", desc: "Ekosistem laut bernilai tinggi", impact: "Pembelian terbatas, dapat insentif konservasi", benefit: "Biodiversitas laut, nursery ground, pariwisata berkelanjutan", regulation: "Permen KP No. 30/2010 tentang Rencana Pengelolaan Terumbu Karang", canUpgrade: true, upgradeType: "Program transplantasi karang, monitoring kesehatan, eduwisata, zona larangan tangkap", conservationBonus: true },
+            { name: "Kartu Kesempatan", type: "chance", icon: "🎴", color: null, price: 0, rent: 0, block: null, category: "card", desc: "Kartu Kebijakan: insentif atau program nasional", impact: "Ambil kartu kebijakan", benefit: "Program pemerintah untuk sektor maritim", regulation: "Kebijakan Ekonomi Biru Indonesia", canUpgrade: false },
+            { name: "Mangrove", type: "property", icon: "🌳", color: "#dc2626", price: 2200000, rent: 220000, block: "V", category: "konservasi", desc: "Pelindung pesisir alami", impact: "Mitigasi bencana & karbon biru", benefit: "Perlindungan abrasi, habitat biota, penyerapan CO2", regulation: "Permen LHK No. 13/2012 tentang Pedoman Rehabilitasi Mangrove", canUpgrade: true, upgradeType: "Penanaman mangrove, pembibitan, sistem silvofishery, edukasi masyarakat", conservationBonus: true },
+            { name: "Lamun", type: "property", icon: "🌿", color: "#dc2626", price: 2400000, rent: 240000, block: "V", category: "konservasi", desc: "Habitat biota laut", impact: "Nursery ground perikanan", benefit: "Tempat pemijahan ikan, penyerapan karbon, rantai makanan laut", regulation: "Permen KP No. 17/2019 tentang Konservasi Jenis Ikan", canUpgrade: true, upgradeType: "Rehabilitasi padang lamun, zona perlindungan, riset ekosistem, wisata edukasi", conservationBonus: true },
+            { name: "Pelabuhan Utara", type: "station", icon: "⚓", color: null, price: 2000000, rent: 250000, block: null, category: "station", desc: "Distribusi nasional", impact: "Sewa naik jika punya >1 stasiun", benefit: "Konektivitas Sulawesi-Kalimantan, jalur ekspor, hub regional", regulation: "UU No. 17/2008 tentang Pelayaran", canUpgrade: false },
+            { name: "Kawasan Ikan Dilindungi", type: "property", icon: "🐠", color: "#16a34a", price: 2600000, rent: 260000, block: "VI", category: "konservasi", desc: "Perlindungan stok ikan", impact: "Tidak bisa upgrade fasilitas komersial", benefit: "Pemulihan populasi ikan, keberlanjutan perikanan, ekosistem sehat", regulation: "Permen KP No. 12/2020 tentang Pengelolaan Ikan di Wilayah RI", canUpgrade: false, conservationBonus: false },
+            { name: "Taman Laut Nasional", type: "property", icon: "🐋", color: "#16a34a", price: 2600000, rent: 260000, block: "VI", category: "konservasi", desc: "Konservasi nasional", impact: "Sewa tidak bebas diatur, zona inti dilindungi", benefit: "Pelestarian megafauna laut, riset ilmiah, wisata terbatas", regulation: "UU No. 5/1990 tentang Konservasi Sumber Daya Alam Hayati", canUpgrade: true, upgradeType: "Pos jaga, jalur wisata terbatas, penelitian, edukasi konservasi", conservationBonus: true },
+            { name: "Pipa Migas Laut", type: "utility", icon: "🛢️", color: null, price: 1500000, rent: 0, block: null, category: "utility", desc: "Distribusi energi maritim", impact: "Sewa 4× dadu jika punya 1, 10× jika punya 2", benefit: "Distribusi BBM, gas alam, ketahanan energi nasional", regulation: "UU No. 22/2001 tentang Minyak dan Gas Bumi", canUpgrade: false },
+            { name: "Kawasan Konservasi Daerah", type: "property", icon: "🦈", color: "#16a34a", price: 2800000, rent: 280000, block: "VI", category: "konservasi", desc: "Dikelola pemerintah daerah", impact: "Insentif rutin dari negara", benefit: "Pelestarian kearifan lokal, pemberdayaan masyarakat, ekowisata", regulation: "Permen KP No. 17/2019 tentang Kawasan Konservasi Daerah", canUpgrade: true, upgradeType: "Pengawasan berbasis masyarakat, patroli rutin, homestay ekowisata", conservationBonus: true },
+            
+            { name: "PELANGGARAN ZONASI", type: "go_to_jail", icon: "🚔", color: null, price: 0, rent: 0, block: null, category: "jail", desc: "Langsung ke Penertiban Zonasi", impact: "Masuk penjara tanpa lewat START", benefit: "Penegakan hukum tata ruang laut", regulation: "Sanksi UU No. 32/2014 tentang Kelautan", canUpgrade: false },
+            
+            { name: "ALKI I", type: "property", icon: "🛡️", color: "#eab308", price: 3000000, rent: 300000, block: "VII", category: "strategis", desc: "Jalur strategis internasional (Laut China Selatan-Laut Jawa-Selat Sunda-Samudera Hindia)", impact: "Tidak bisa dibeli bebas, izin strategis", benefit: "Kedaulatan nasional, pelayaran internasional, pertahanan", regulation: "UU No. 17/1985 tentang Pengesahan UNCLOS", canUpgrade: false },
+            { name: "ALKI II", type: "property", icon: "🛡️", color: "#eab308", price: 3000000, rent: 300000, block: "VII", category: "strategis", desc: "Kepentingan pertahanan (Laut Sulawesi-Selat Makassar-Laut Flores-Selat Lombok-Samudera Hindia)", impact: "Tidak bisa dibeli bebas, kepentingan pertahanan", benefit: "Keamanan laut, pengawasan perbatasan, latihan TNI AL", regulation: "PP No. 37/2002 tentang ALKI", canUpgrade: false },
+            { name: "Dana Umum", type: "community_chest", icon: "📋", color: null, price: 0, rent: 0, block: null, category: "card", desc: "Kartu Peraturan: pajak, denda, atau audit", impact: "Ambil kartu peraturan", benefit: "Kepatuhan terhadap regulasi kelautan", regulation: "Peraturan Pemerintah tentang Tata Ruang Laut", canUpgrade: false },
+            { name: "Pangkalan Laut", type: "property", icon: "⚔️", color: "#eab308", price: 3200000, rent: 320000, block: "VII", category: "strategis", desc: "Pertahanan dan keamanan laut", impact: "Tidak diperjualbelikan, milik negara", benefit: "Kesiapsiagaan TNI AL, patroli ZEE, penegakan hukum laut", regulation: "UU No. 34/2004 tentang TNI", canUpgrade: false },
+            { name: "Pelabuhan Selatan", type: "station", icon: "⚓", color: null, price: 2000000, rent: 250000, block: null, category: "station", desc: "Akses laut strategis Samudera Hindia", impact: "Sewa naik jika punya >1 stasiun", benefit: "Konektivitas Jawa-Nusa Tenggara, wisata bahari, perikanan", regulation: "UU No. 17/2008 tentang Pelayaran", canUpgrade: false },
+            { name: "Kartu Kesempatan", type: "chance", icon: "🎴", color: null, price: 0, rent: 0, block: null, category: "card", desc: "Kartu Kebijakan: insentif atau program nasional", impact: "Ambil kartu kebijakan", benefit: "Program pemerintah untuk sektor maritim", regulation: "Kebijakan Ekonomi Biru Indonesia", canUpgrade: false },
+            { name: "Zona Latihan Militer", type: "property", icon: "🎖️", color: "#06b6d4", price: 3500000, rent: 350000, block: "VIII", category: "strategis", desc: "Kawasan khusus negara untuk latihan perang laut", impact: "Tidak bisa dibeli sembarang, akses terbatas", benefit: "Kesiapan pertahanan, latihan bersama, teknologi militer", regulation: "Perpres No. 178/2014 tentang Penggunaan Wilayah Laut", canUpgrade: false },
+            { name: "Denda Pelanggaran Zonasi", type: "luxury_tax", icon: "⚠️", color: null, price: 1000000, rent: 0, block: null, category: "tax", desc: "Super tax pelanggaran berat tata ruang laut", impact: "Bayar Rp 1.000.000", benefit: "Dana rehabilitasi ekosistem, penegakan hukum", regulation: "Sanksi administratif UU No. 32/2014", canUpgrade: false },
+            { name: "Zona Integrasi Laut", type: "property", icon: "🗾", color: "#06b6d4", price: 4000000, rent: 500000, block: "VIII", category: "strategis", desc: "Penghubung wilayah laut Nusantara", impact: "Bonus jaringan maritim, integrasi nasional", benefit: "Konektivitas menyeluruh, pemerataan pembangunan, ketahanan nasional", regulation: "Perpres No. 16/2017 tentang Kebijakan Kelautan", canUpgrade: true, upgradeType: "Sistem monitoring terpadu, kapal patroli, teknologi komunikasi satelit" }
+        ];
+
+        const chanceCards = [
+            { title: "Program Ekonomi Biru", desc: "Program ekonomi biru berkelanjutan memberikan insentif konservasi. Terima Rp 800.000.", effect: (p) => { p.money += 800000; showToast('💙 Program Ekonomi Biru: +Rp 800.000', 'success'); }},
+            { title: "Insentif Zonasi Konservasi", desc: "Pemerintah memberikan insentif untuk zona konservasi Anda. Terima Rp 500.000.", effect: (p) => { p.money += 500000; showToast('🌱 Insentif Konservasi: +Rp 500.000', 'success'); }},
+            { title: "Proyek Strategis Nasional", desc: "Zona Anda masuk proyek strategis nasional. Upgrade gratis ke Level 1!", effect: (p, g) => { 
+                if (p.properties.length > 0) {
+                    const upgradableProps = p.properties.filter(prop => zones[prop].canUpgrade && (g.propertyLevels[prop] || 0) < 3);
+                    if (upgradableProps.length > 0) {
+                        const propToUpgrade = upgradableProps[Math.floor(Math.random() * upgradableProps.length)];
+                        g.propertyLevels[propToUpgrade] = (g.propertyLevels[propToUpgrade] || 0) + 1;
+                        showToast(`🏗️ PSN: ${zones[propToUpgrade].name} naik ke Level ${g.propertyLevels[propToUpgrade]}!`, 'success');
+                    } else {
+                        p.money += 1000000;
+                        showToast('💰 Dana PSN: +Rp 1.000.000', 'success');
+                    }
+                } else {
+                    p.money += 1000000;
+                    showToast('💰 Dana PSN: +Rp 1.000.000', 'success');
+                }
+            }},
+            { title: "Perjanjian ASEAN", desc: "Kerjasama regional maritim. Terima Rp 300.000 dari setiap pemain.", effect: (p, g) => { 
+                let total = 0;
+                g.players.forEach(pl => { 
+                    if (pl !== p && pl.money >= 300000) { 
+                        pl.money -= 300000; 
+                        p.money += 300000; 
+                        total += 300000;
+                    } 
+                }); 
+                showToast(`🤝 ASEAN: +Rp ${total.toLocaleString('id-ID')}`, 'success');
+            }},
+            { title: "Subsidi Perikanan", desc: "Program subsidi alat tangkap ramah lingkungan. Terima Rp 600.000.", effect: (p) => { p.money += 600000; showToast('🎣 Subsidi Perikanan: +Rp 600.000', 'success'); }},
+            { title: "Maju ke START", desc: "Zona tata ruang terbaik nasional. Maju langsung ke START!", effect: (p, g) => { 
+                p.position = 0; 
+                const bonus = parseInt((config.start_bonus || defaultConfig.start_bonus).replace(/[^0-9]/g, ''));
+                p.money += bonus; 
+                showToast(`�� Maju ke START! +Rp ${bonus.toLocaleString('id-ID')}`, 'success');
+            }},
+            { title: "Pengawasan MCS", desc: "Monitoring, Control, Surveillance sukses. Semua pemain bayar Rp 200.000.", effect: (p, g) => { 
+                g.players.forEach(pl => { 
+                    if (pl !== p) { 
+                        pl.money -= 200000; 
+                        p.money += 200000; 
+                    } 
+                }); 
+                showToast('🛰️ MCS: Semua bayar Rp 200k', 'info');
+            }},
+            { title: "Dana Kelola Laut", desc: "Dana kelola berbasis masyarakat. Terima Rp 700.000.", effect: (p) => { p.money += 700000; showToast('����� Dana Kelola: +Rp 700.000', 'success'); }},
+            { title: "Perbaikan Infrastruktur", desc: "Perbaiki semua zona Anda. Bayar Rp 400.000 per zona.", effect: (p) => { 
+                const cost = p.properties.length * 400000;
+                p.money -= cost;
+                showToast(`🔧 Perbaikan: -Rp ${cost.toLocaleString('id-ID')}`, 'warning');
+            }}
+        ];
+
+        const communityChestCards = [
+            { title: "Audit BPK", desc: "Audit keuangan pengelolaan laut. Bayar biaya audit Rp 800.000.", effect: (p) => { p.money -= 800000; showToast('�� Audit BPK: -Rp 800.000', 'warning'); }},
+            { title: "Denda IUU Fishing", desc: "Denda pelanggaran Illegal Unreported Unregulated Fishing. Bayar Rp 1.200.000.", effect: (p) => { p.money -= 1200000; showToast('🚫 Denda IUU: -Rp 1.200.000', 'error'); }},
+            { title: "Retribusi Perizinan", desc: "Perpanjangan izin zona pemanfaatan. Bayar Rp 500.000.", effect: (p) => { p.money -= 500000; showToast('�� Retribusi: -Rp 500.000', 'warning'); }},
+            { title: "Kompensasi Lingkungan", desc: "Kompensasi kerusakan ekosistem. Bayar Rp 600.000.", effect: (p) => { p.money -= 600000; showToast('���� Kompensasi: -Rp 600.000', 'warning'); }},
+            { title: "Hibah Konservasi", desc: "Hibah dari lembaga konservasi internasional. Terima Rp 900.000.", effect: (p) => { p.money += 900000; showToast('�� Hibah: +Rp 900.000', 'success'); }},
+            { title: "Pajak Bumi dan Bangunan Laut", desc: "PBB untuk zona pemanfaatan laut. Bayar Rp 400.000.", effect: (p) => { p.money -= 400000; showToast('🏛️ PBB Laut: -Rp 400.000', 'warning'); }},
+            { title: "Dana Desa Pesisir", desc: "Alokasi dana desa pesisir. Terima Rp 750.000.", effect: (p) => { p.money += 750000; showToast('🏘️ Dana Desa: +Rp 750.000', 'success'); }},
+            { title: "Tsunami & Abrasi", desc: "Bencana alam merusak zona pesisir. Bayar pemulihan Rp 1.000.000.", effect: (p) => { p.money -= 1000000; showToast('🌊 Bencana: -Rp 1.000.000', 'error'); }},
+            { title: "Penghargaan Blue Flag", desc: "Zona wisata bahari terbaik. Terima hadiah Rp 850.000.", effect: (p) => { p.money += 850000; showToast('🏆 Blue Flag: +Rp 850.000', 'success'); }}
+        ];
+
+        const gameState = {
+            mode: null,
+            players: [],
+            currentPlayerIndex: 0,
+            isRolling: false,
+            gameStarted: false,
+            totalPlayers: 0,
+            propertyLevels: {},
+            history: []
+        };
+
+        function selectDifficulty(difficulty) {
+            aiDifficulty = difficulty;
+            
+            document.querySelectorAll('.difficulty-badge').forEach(badge => {
+                badge.classList.remove('selected');
+            });
+            
+            event.target.closest('.difficulty-badge').classList.add('selected');
+            
+            const descriptions = {
+                easy: '😊 AI pasif: upgrade 30%, beli zona 40%, strategi defensif',
+                medium: '🤔 AI strategi seimbang: upgrade 50%, beli zona 60%',
+                hard: '😤 AI agresif: upgrade 75%, beli zona 85%, prioritas monopoli'
+            };
+            
+            document.getElementById('difficultyDesc').textContent = descriptions[difficulty];
+        }
+
+        function showAIPlayerSelect() {
+            document.getElementById('playerSelectModal').classList.remove('hidden');
+            document.getElementById('playerSelectTitle').textContent = 'Pilih Jumlah AI Lawan';
+            document.getElementById('difficultySection').classList.remove('hidden');
+            document.getElementById('ai2').classList.remove('hidden');
+            document.getElementById('ai3').classList.remove('hidden');
+            document.getElementById('ai4').classList.remove('hidden');
+            document.getElementById('mp2').classList.add('hidden');
+            document.getElementById('mp3').classList.add('hidden');
+            document.getElementById('mp4').classList.add('hidden');
+        }
+
+        function showMultiplayerSelect() {
+            document.getElementById('playerSelectModal').classList.remove('hidden');
+            document.getElementById('playerSelectTitle').textContent = 'Pilih Jumlah Pemain';
+            document.getElementById('difficultySection').classList.add('hidden');
+            document.getElementById('ai2').classList.add('hidden');
+            document.getElementById('ai3').classList.add('hidden');
+            document.getElementById('ai4').classList.add('hidden');
+            document.getElementById('mp2').classList.remove('hidden');
+            document.getElementById('mp3').classList.remove('hidden');
+            document.getElementById('mp4').classList.remove('hidden');
+        }
+
+        function hidePlayerSelect() {
+            document.getElementById('playerSelectModal').classList.add('hidden');
+        }
+
+        function startGame(mode, totalPlayers) {
+            gameState.mode = mode;
+            gameState.totalPlayers = totalPlayers;
+            
+            const startMoney = parseInt((config.start_money || defaultConfig.start_money).replace(/[^0-9]/g, ''));
+            const colors = ["#0284c7", "#dc2626", "#16a34a", "#f59e0b"];
+            
+            gameState.players = [];
+            
+            if (mode === 'ai') {
+                gameState.players.push({ 
+                    name: "Pemain", 
+                    color: colors[0], 
+                    money: startMoney, 
+                    position: 0, 
+                    properties: [], 
+                    inJail: false, 
+                    jailTurns: 0, 
+                    isAI: false,
+                    completedFirstRound: false,
+                    needsDoubleToStart: true
+                });
+                
+                for (let i = 1; i < totalPlayers; i++) {
+                    gameState.players.push({ 
+                        name: `AI ${i}`, 
+                        color: colors[i], 
+                        money: startMoney, 
+                        position: 0, 
+                        properties: [], 
+                        inJail: false, 
+                        jailTurns: 0, 
+                        isAI: true,
+                        completedFirstRound: false,
+                        difficulty: aiDifficulty,
+                        needsDoubleToStart: true
+                    });
+                }
+            } else {
+                for (let i = 0; i < totalPlayers; i++) {
+                    gameState.players.push({ 
+                        name: `P${i + 1}`, 
+                        color: colors[i], 
+                        money: startMoney, 
+                        position: 0, 
+                        properties: [], 
+                        inJail: false, 
+                        jailTurns: 0, 
+                        isAI: false,
+                        completedFirstRound: false,
+                        needsDoubleToStart: true
+                    });
+                }
+            }
+            
+            document.getElementById('modeScreen').style.display = 'none';
+            document.getElementById('gameScreen').style.display = 'block';
+            hidePlayerSelect();
+            
+            initGame();
+        }
+
+        function initGame() {
+            createBoard();
+            updateUI();
+            gameState.gameStarted = true;
+        }
+
+        function createBoard() {
+            const board = document.getElementById('board');
+            board.innerHTML = '';
+            const boardSize = board.offsetWidth;
+            const cellSize = boardSize / 11;
+            
+            for (let i = 0; i <= 10; i++) {
+                createCell(i, boardSize - cellSize, i * cellSize, cellSize);
+            }
+            
+            for (let i = 1; i <= 9; i++) {
+                createCell(10 + i, boardSize - (i + 1) * cellSize, 10 * cellSize, cellSize);
+            }
+            
+            for (let i = 0; i <= 10; i++) {
+                createCell(20 + i, 0, (10 - i) * cellSize, cellSize);
+            }
+            
+            for (let i = 1; i <= 9; i++) {
+                createCell(30 + i, i * cellSize, 0, cellSize);
+            }
+            
+            gameState.players.forEach((player, index) => {
+                const token = document.createElement('div');
+                token.className = 'player-token';
+                token.id = `player-${index}`;
+                token.textContent = index + 1;
+                token.style.background = player.color;
+                board.appendChild(token);
+                updatePlayerPosition(index);
+            });
+        }
+
+        function createCell(index, top, left, size) {
+            if (index >= zones.length) return;
+            
+            const cell = document.createElement('div');
+            cell.className = 'board-cell';
+            cell.style.top = `${top}px`;
+            cell.style.left = `${left}px`;
+            cell.style.width = `${size}px`;
+            cell.style.height = `${size}px`;
+            cell.dataset.index = index;
+            
+            const zone = zones[index];
+            
+            if (zone.color) {
+                const colorBar = document.createElement('div');
+                colorBar.className = 'property-color';
+                colorBar.style.background = zone.color;
+                cell.appendChild(colorBar);
+            }
+            
+            const icon = document.createElement('div');
+            icon.textContent = zone.icon;
+            icon.style.fontSize = window.innerWidth < 640 ? '10px' : (window.innerWidth < 768 ? '13px' : '16px');
+            cell.appendChild(icon);
+            
+            const name = document.createElement('div');
+            name.textContent = zone.name;
+            name.style.fontSize = window.innerWidth < 640 ? '5px' : (window.innerWidth < 768 ? '6px' : '7px');
+            name.style.fontWeight = '700';
+            name.style.marginTop = '1px';
+            name.style.lineHeight = '1.1';
+            cell.appendChild(name);
+            
+            if (zone.price > 0) {
+                const price = document.createElement('div');
+                price.textContent = `Rp ${(zone.price / 1000)}k`;
+                price.style.fontSize = window.innerWidth < 640 ? '4px' : (window.innerWidth < 768 ? '5px' : '6px');
+                price.style.color = '#059669';
+                price.style.fontWeight = '700';
+                price.style.marginTop = '1px';
+                cell.appendChild(price);
+            }
+            
+            cell.addEventListener('click', () => {
+                const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+                if (currentPlayer.properties.includes(index) && zone.canUpgrade) {
+                    showUpgradeModal(index);
+                } else {
+                    showPropertyDetails(index);
+                }
+            });
+            
+            document.getElementById('board').appendChild(cell);
+        }
+
+        function updatePlayerPosition(playerIndex) {
+            const token = document.getElementById(`player-${playerIndex}`);
+            const player = gameState.players[playerIndex];
+            const position = player.position;
+            const board = document.getElementById('board');
+            const boardSize = board.offsetWidth;
+            const cellSize = boardSize / 11;
+            
+            let x, y;
+            
+            if (position <= 10) {
+                x = position * cellSize + cellSize / 2;
+                y = boardSize - cellSize / 2;
+            }
+            else if (position <= 19) {
+                x = 10 * cellSize + cellSize / 2;
+                y = boardSize - (position - 10 + 1) * cellSize + cellSize / 2;
+            }
+            else if (position <= 30) {
+                x = (10 - (position - 20)) * cellSize + cellSize / 2;
+                y = cellSize / 2;
+            }
+            else {
+                x = cellSize / 2;
+                y = (position - 30) * cellSize + cellSize / 2;
+            }
+            
+            const offset = playerIndex * 5;
+            x += offset - 7.5;
+            y += offset - 7.5;
+            
+            const tokenSize = window.innerWidth < 640 ? 6 : (window.innerWidth < 768 ? 7.5 : 9);
+            
+            token.style.left = `${x - tokenSize}px`;
+            token.style.top = `${y - tokenSize}px`;
+        }
+
+        function calculatePropertyValue(zoneIndex) {
+            const zone = zones[zoneIndex];
+            const level = gameState.propertyLevels[zoneIndex] || 0;
+            return zone.price * (1 + level * 0.5);
+        }
+
+        function updatePropertyValuesPanel() {
+            const panel = document.getElementById('propertyValues');
+            panel.innerHTML = '';
+            
+            gameState.players.forEach((player, index) => {
+                let totalValue = 0;
+                player.properties.forEach(prop => {
+                    totalValue += calculatePropertyValue(prop);
+                });
+                
+                const valueDiv = document.createElement('div');
+                valueDiv.className = 'flex items-center gap-2 p-2 bg-gray-50 rounded-lg';
+                valueDiv.innerHTML = `
+                    <div style="width: 20px; height: 20px; background: ${player.color}; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>
+                    <div class="flex-1">
+                        <div class="text-xs font-bold text-gray-800">${player.name}</div>
+                        <div class="text-xs text-green-600 font-bold">💎 Rp ${totalValue.toLocaleString('id-ID')}</div>
+                    </div>
+                `;
+                panel.appendChild(valueDiv);
+            });
+        }
+
+        function updateUI() {
+            const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+            
+            document.getElementById('currentPlayerToken').style.background = currentPlayer.color;
+            document.getElementById('currentPlayerToken').textContent = gameState.currentPlayerIndex + 1;
+            document.getElementById('currentPlayerName').textContent = currentPlayer.name;
+            document.getElementById('currentPlayerMoney').textContent = `Rp ${currentPlayer.money.toLocaleString('id-ID')}`;
+            document.getElementById('currentPlayerZones').textContent = `${currentPlayer.properties.length} zona`;
+            
+            const jailStatus = document.getElementById('jailStatus');
+            if (currentPlayer.inJail) {
+                jailStatus.classList.remove('hidden');
+                document.getElementById('jailTurns').textContent = `Sisa ${currentPlayer.jailTurns} putaran`;
+            } else {
+                jailStatus.classList.add('hidden');
+            }
+            
+            const playersList = document.getElementById('playersList');
+            playersList.innerHTML = '';
+            
+            gameState.players.forEach((player, index) => {
+                const playerDiv = document.createElement('div');
+                playerDiv.className = 'flex items-center gap-3 p-3 rounded-lg transition-all border-2 ' + 
+                    (index === gameState.currentPlayerIndex ? 'bg-cyan-50 border-cyan-400 shadow-md' : 'bg-gray-50 border-gray-200');
+                
+                playerDiv.innerHTML = `
+                    <div style="width: 36px; height: 36px; background: ${player.color}; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-weight: 900; font-size: 14px; box-shadow: 0 3px 6px rgba(0,0,0,0.25); border: 2px solid white;">
+                        ${index + 1}
+                    </div>
+                    <div class="flex-1">
+                        <div style="font-weight: 700; font-size: 13px; color: #1f2937;">${player.name}${player.isAI ? ' 🤖' : ''}</div>
+                        <div style="color: #059669; font-size: 11px; font-weight: 700;">Rp ${player.money.toLocaleString('id-ID')}</div>
+                        <div style="color: #0284c7; font-size: 10px; font-weight: 600;">${player.properties.length} zona</div>
+                    </div>
+                `;
+                
+                playersList.appendChild(playerDiv);
+            });
+            
+            updateOwnedProperties();
+            updatePropertyValuesPanel();
+        }
+        
+        function updateHistory() {
+            const historyContainer = document.getElementById('playerHistory');
+            
+            if (gameState.history.length === 0) {
+                historyContainer.innerHTML = '<div class="text-xs text-gray-500 text-center py-4">Histori akan muncul setelah pemain bergerak</div>';
+                return;
+            }
+            
+            historyContainer.innerHTML = '';
+            
+            gameState.history.forEach((entry) => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'p-2 bg-gray-50 rounded-lg border border-gray-200';
+                historyItem.innerHTML = `
+                    <div class="flex items-start gap-2">
+                        <div style="width: 18px; height: 18px; background: ${entry.playerColor}; border-radius: 50%; flex-shrink: 0; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-xs font-bold text-gray-800">${entry.playerName}</div>
+                            <div class="text-xs text-gray-600 mt-1 leading-tight">
+                                <span class="text-red-600 font-semibold">${entry.from}</span>
+                                <span class="text-gray-400 mx-1">→</span>
+                                <span class="text-green-600 font-semibold">${entry.to}</span>
+                            </div>
+                            <div class="text-xs text-gray-500 mt-1 flex items-center gap-2">
+                                <span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded font-bold">🎲 ${entry.steps}</span>
+                                <span class="text-gray-400">⏰ ${entry.timestamp}</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                historyContainer.appendChild(historyItem);
+            });
+        }
+
+        function updateOwnedProperties() {
+            document.querySelectorAll('.board-cell').forEach((cell, index) => {
+                cell.classList.remove('owned');
+                const existingBadge = cell.querySelector('.owner-badge');
+                if (existingBadge) existingBadge.remove();
+                const existingLevel = cell.querySelector('.level-badge');
+                if (existingLevel) existingLevel.remove();
+                
+                const owner = gameState.players.find(p => p.properties.includes(index));
+                if (owner) {
+                    cell.classList.add('owned');
+                    const badge = document.createElement('div');
+                    badge.className = 'owner-badge';
+                    badge.style.background = owner.color;
+                    cell.appendChild(badge);
+                    
+                    const level = gameState.propertyLevels[index] || 0;
+                    if (level > 0) {
+                        const levelBadge = document.createElement('div');
+                        levelBadge.className = 'level-badge';
+                        levelBadge.textContent = level;
+                        cell.appendChild(levelBadge);
+                    }
+                }
+            });
+        }
+
+        function rollDice() {
+            if (gameState.isRolling) return;
+            
+            const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+            
+            if (currentPlayer.inJail) {
+                gameState.isRolling = true;
+                const rollBtn = document.getElementById('rollBtn');
+                const rollBtnCenter = document.getElementById('rollBtnCenter');
+                rollBtn.disabled = true;
+                rollBtnCenter.disabled = true;
+                
+                const dice1 = document.getElementById('dice1');
+                const dice2 = document.getElementById('dice2');
+                
+                dice1.classList.add('rolling');
+                dice2.classList.add('rolling');
+                
+                setTimeout(() => {
+                    let roll1 = Math.floor(Math.random() * 6) + 1;
+                    let roll2 = Math.floor(Math.random() * 6) + 1;
+                    
+                    dice1.textContent = roll1;
+                    dice2.textContent = roll2;
+                    
+                    dice1.classList.remove('rolling');
+                    dice2.classList.remove('rolling');
+                    
+                    const isDoubles = roll1 === roll2;
+                    
+                    if (isDoubles) {
+                        // Dapat dadu ganda = bebas langsung dan jalan
+                        currentPlayer.inJail = false;
+                        currentPlayer.jailTurns = 0;
+                        showToast(`🎉 Dadu ganda ${roll1}-${roll2}! Bebas dari Penertiban Zonasi!`, 'success');
+                        
+                        setTimeout(() => {
+                            movePlayer(roll1 + roll2);
+                        }, 600);
+                    } else {
+                        // Tidak dapat dadu ganda
+                        currentPlayer.jailTurns--;
+                        
+                        if (currentPlayer.jailTurns === 0) {
+                            // Habis masa hukuman, bebas dan jalan
+                            currentPlayer.inJail = false;
+                            showToast(`⏰ Masa hukuman selesai! Jalan ${roll1 + roll2} langkah`, 'success');
+                            
+                            setTimeout(() => {
+                                movePlayer(roll1 + roll2);
+                            }, 600);
+                        } else {
+                            // Masih di penjara
+                            showToast(`⏳ Tidak dapat dadu ganda. Masih ${currentPlayer.jailTurns} putaran lagi`, 'info');
+                            
+                            setTimeout(() => {
+                                gameState.isRolling = false;
+                                rollBtn.disabled = false;
+                                rollBtnCenter.disabled = false;
+                                updateUI();
+                                endTurn();
+                            }, 1500);
+                        }
+                    }
+                }, 600);
+                
+                return;
+            }
+            
+            gameState.isRolling = true;
+            const rollBtn = document.getElementById('rollBtn');
+            const rollBtnCenter = document.getElementById('rollBtnCenter');
+            rollBtn.disabled = true;
+            rollBtnCenter.disabled = true;
+            
+            const dice1 = document.getElementById('dice1');
+            const dice2 = document.getElementById('dice2');
+            
+            dice1.classList.add('rolling');
+            dice2.classList.add('rolling');
+            
+            setTimeout(() => {
+                let roll1 = Math.floor(Math.random() * 6) + 1;
+                let roll2 = Math.floor(Math.random() * 6) + 1;
+                
+                dice1.textContent = roll1;
+                dice2.textContent = roll2;
+                
+                dice1.classList.remove('rolling');
+                dice2.classList.remove('rolling');
+                
+                const total = roll1 + roll2;
+                const isDoubles = roll1 === roll2;
+                
+                // Cek jika pemain masih menunggu dadu ganda untuk memulai (per-player)
+                if (currentPlayer.needsDoubleToStart && currentPlayer.position === 0) {
+                    if (!isDoubles) {
+                        showToast(`🎲 ${currentPlayer.name} dapat ${roll1} dan ${roll2} - Harus dadu ganda untuk mulai!`, 'warning');
+                        setTimeout(() => {
+                            gameState.isRolling = false;
+                            rollBtn.disabled = false;
+                            rollBtnCenter.disabled = false;
+                            endTurn();
+                        }, 1500);
+                        return;
+                    } else {
+                        showToast(`🎉 ${currentPlayer.name} dapat dadu ganda ${roll1}-${roll2}! Permainan dimulai!`, 'success');
+                        currentPlayer.needsDoubleToStart = false;
+                    }
+                }
+                
+                setTimeout(() => {
+                    movePlayer(total);
+                }, 600);
+            }, 600);
+        }
+
+        function movePlayer(steps) {
+            const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+            const oldPosition = currentPlayer.position;
+            
+            currentPlayer.position = (currentPlayer.position + steps) % zones.length;
+            
+            const startBonus = parseInt((config.start_bonus || defaultConfig.start_bonus).replace(/[^0-9]/g, ''));
+            
+            if (currentPlayer.position < oldPosition || currentPlayer.position === 0) {
+                if (!currentPlayer.completedFirstRound) {
+                    currentPlayer.completedFirstRound = true;
+                    showToast(`���� Putaran pertama selesai! Bonus Rp ${startBonus.toLocaleString('id-ID')}`, 'success');
+                } else {
+                    showToast(`🎁 Melewati START! Bonus Rp ${startBonus.toLocaleString('id-ID')}`, 'success');
+                }
+                currentPlayer.money += startBonus;
+            }
+            
+            const historyEntry = {
+                playerName: currentPlayer.name,
+                playerColor: currentPlayer.color,
+                from: zones[oldPosition].name,
+                to: zones[currentPlayer.position].name,
+                steps: steps,
+                timestamp: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })
+            };
+            gameState.history.unshift(historyEntry);
+            
+            if (gameState.history.length > 20) {
+                gameState.history.pop();
+            }
+            
+            updateHistory();
+            updatePlayerPosition(gameState.currentPlayerIndex);
+            
+            setTimeout(() => {
+                handleLanding();
+            }, 900);
+        }
+
+        function handleLanding() {
+            const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+            const zone = zones[currentPlayer.position];
+            
+            // Cek jika pemain mendarat TEPAT di blok Penertiban Zonasi (posisi 10) BUKAN dari go_to_jail
+            if (currentPlayer.position === 10 && zone.type === 'jail' && !currentPlayer.inJail) {
+                // Hanya berkunjung, tidak masuk penjara
+                showToast('👀 Hanya berkunjung di Penertiban Zonasi', 'info');
+                updateUI();
+                endTurn();
+                return;
+            }
+            
+            switch(zone.type) {
+                case 'property':
+                    handlePropertyZone(currentPlayer.position);
+                    break;
+                case 'chance':
+                    drawCard(chanceCards);
+                    break;
+                case 'community_chest':
+                    drawCard(communityChestCards);
+                    break;
+                case 'tax':
+                case 'luxury_tax':
+                    currentPlayer.money -= zone.price;
+                    showToast(`💰 Bayar ${zone.name} Rp ${zone.price.toLocaleString('id-ID')}`, 'warning');
+                    endTurn();
+                    break;
+                case 'station':
+                    handleStationZone(currentPlayer.position);
+                    break;
+                case 'utility':
+                    handleUtilityZone(currentPlayer.position);
+                    break;
+                case 'jail':
+                    // Case ini hanya untuk pemain yang SUDAH di penjara
+                    endTurn();
+                    break;
+                case 'go_to_jail':
+                    currentPlayer.position = 10;
+                    currentPlayer.inJail = true;
+                    currentPlayer.jailTurns = 3;
+                    updatePlayerPosition(gameState.currentPlayerIndex);
+                    showToast('🚨 Masuk Penertiban Zonasi! Bayar Rp 500k atau tunggu 3 putaran', 'error');
+                    endTurn();
+                    break;
+                case 'free_parking':
+                    showToast('🅿️ Laut Bebas Konflik - Zona aman', 'info');
+                    endTurn();
+                    break;
+                default:
+                    endTurn();
+                    break;
+            }
+            
+            updateUI();
+        }
+
+        function handlePropertyZone(zoneIndex) {
+            const zone = zones[zoneIndex];
+            const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+            const owner = gameState.players.find(p => p.properties.includes(zoneIndex));
+            
+            if (!owner) {
+                if (!currentPlayer.completedFirstRound) {
+                    showToast('ℹ️ Selesaikan putaran pertama untuk dapat membeli zona', 'info');
+                    endTurn();
+                    return;
+                }
+                
+                if (currentPlayer.isAI) {
+                    setTimeout(() => {
+                        const buyProbability = { easy: 0.4, medium: 0.6, hard: 0.85 }[currentPlayer.difficulty];
+                        if (currentPlayer.money >= zone.price && Math.random() < buyProbability) {
+                            currentPlayer.money -= zone.price;
+                            currentPlayer.properties.push(zoneIndex);
+                            showToast(`🤖 ${currentPlayer.name} membeli ${zone.name}`, 'info');
+                            updateUI();
+                        }
+                        endTurn();
+                    }, 1500);
+                } else {
+                    showPropertyModal(zoneIndex, 'buy');
+                }
+            } else if (owner !== currentPlayer) {
+                const rent = calculateRent(zoneIndex, owner);
+                currentPlayer.money -= rent;
+                owner.money += rent;
+                showToast(`💸 Bayar PNBP Rp ${rent.toLocaleString('id-ID')} ke ${owner.name}`, 'warning');
+                
+                if (currentPlayer.money < 0) {
+                    showToast(`💔 ${currentPlayer.name} bangkrut!`, 'error');
+                }
+                
+                // Tawarkan opsi membeli zona dari lawan
+                if (!currentPlayer.isAI && currentPlayer.completedFirstRound) {
+                    showBuyFromOpponentModal(zoneIndex, owner);
+                } else {
+                    endTurn();
+                }
+            } else {
+                endTurn();
+            }
+        }
+
+        function handleStationZone(zoneIndex) {
+            const zone = zones[zoneIndex];
+            const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+            const owner = gameState.players.find(p => p.properties.includes(zoneIndex));
+            
+            if (!owner) {
+                if (!currentPlayer.completedFirstRound) {
+                    showToast('ℹ����� Selesaikan putaran pertama untuk dapat membeli stasiun', 'info');
+                    endTurn();
+                    return;
+                }
+                
+                if (currentPlayer.isAI) {
+                    setTimeout(() => {
+                        const buyProbability = { easy: 0.4, medium: 0.6, hard: 0.85 }[currentPlayer.difficulty];
+                        if (currentPlayer.money >= zone.price && Math.random() < buyProbability) {
+                            currentPlayer.money -= zone.price;
+                            currentPlayer.properties.push(zoneIndex);
+                            showToast(`🤖 ${currentPlayer.name} membeli ${zone.name}`, 'info');
+                            updateUI();
+                        }
+                        endTurn();
+                    }, 1500);
+                } else {
+                    showPropertyModal(zoneIndex, 'buy');
+                }
+            } else if (owner !== currentPlayer) {
+                const stationsOwned = zones.filter((z, i) => z.type === 'station' && owner.properties.includes(i)).length;
+                const rent = zone.rent * stationsOwned;
+                currentPlayer.money -= rent;
+                owner.money += rent;
+                showToast(`⚓ Bayar sewa stasiun Rp ${rent.toLocaleString('id-ID')} ke ${owner.name}`, 'warning');
+                endTurn();
+            } else {
+                endTurn();
+            }
+        }
+
+        function handleUtilityZone(zoneIndex) {
+            const zone = zones[zoneIndex];
+            const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+            const owner = gameState.players.find(p => p.properties.includes(zoneIndex));
+            
+            if (!owner) {
+                if (!currentPlayer.completedFirstRound) {
+                    showToast('ℹ️ Selesaikan putaran pertama untuk dapat membeli utilitas', 'info');
+                    endTurn();
+                    return;
+                }
+                
+                if (currentPlayer.isAI) {
+                    setTimeout(() => {
+                        const buyProbability = { easy: 0.35, medium: 0.55, hard: 0.75 }[currentPlayer.difficulty];
+                        if (currentPlayer.money >= zone.price && Math.random() < buyProbability) {
+                            currentPlayer.money -= zone.price;
+                            currentPlayer.properties.push(zoneIndex);
+                            showToast(`��� ${currentPlayer.name} membeli ${zone.name}`, 'info');
+                            updateUI();
+                        }
+                        endTurn();
+                    }, 1500);
+                } else {
+                    showPropertyModal(zoneIndex, 'buy');
+                }
+            } else if (owner !== currentPlayer) {
+                const utilitiesOwned = zones.filter((z, i) => z.type === 'utility' && owner.properties.includes(i)).length;
+                const dice1 = parseInt(document.getElementById('dice1').textContent);
+                const dice2 = parseInt(document.getElementById('dice2').textContent);
+                const diceTotal = dice1 + dice2;
+                const multiplier = utilitiesOwned === 1 ? 4 : 10;
+                const rent = diceTotal * multiplier * 10000;
+                currentPlayer.money -= rent;
+                owner.money += rent;
+                showToast(`🔌 Bayar utilitas Rp ${rent.toLocaleString('id-ID')} ke ${owner.name}`, 'warning');
+                endTurn();
+            } else {
+                endTurn();
+            }
+        }
+
+        function calculateRent(zoneIndex, owner) {
+            const zone = zones[zoneIndex];
+            const level = gameState.propertyLevels[zoneIndex] || 0;
+            const levelMultipliers = [1, 1.5, 2.5, 4];
+            
+            return Math.floor(zone.rent * levelMultipliers[level]);
+        }
+
+        function showUpgradeModal(zoneIndex) {
+            const zone = zones[zoneIndex];
+            const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+            const currentLevel = gameState.propertyLevels[zoneIndex] || 0;
+            
+            // Cek apakah pemain berada di posisi zona ini
+            if (currentPlayer.position !== zoneIndex) {
+                showToast('⚠️ Anda harus berada di zona ini untuk upgrade!', 'warning');
+                showPropertyDetails(zoneIndex);
+                return;
+            }
+            
+            if (!zone.canUpgrade || currentLevel >= 3 || currentPlayer.inJail) {
+                showPropertyDetails(zoneIndex);
+                return;
+            }
+            
+            const modal = document.getElementById('propertyModal');
+            const content = document.getElementById('propertyModalContent');
+            
+            const upgradeCostMultipliers = [0.5, 0.75, 1];
+            const upgradeCost = Math.floor(zone.price * upgradeCostMultipliers[currentLevel]);
+            
+            const levelNames = ['Dasar', 'Pengelolaan', 'Optimalisasi', 'Berkelanjutan'];
+            const nextLevel = currentLevel + 1;
+            
+            const categoryInfo = {
+                pemanfaatan: { color: '#0284c7', label: '🟦 Zona Pemanfaatan', desc: 'Investasi infrastruktur & teknologi' },
+                konservasi: { color: '#16a34a', label: '🟩 Zona Konservasi', desc: zone.conservationBonus ? 'Bonus Rp 500k saat Level 3!' : 'Rehabilitasi ekosistem' },
+                strategis: { color: '#dc2626', label: '🟥 Zona Strategis', desc: 'Tidak bisa di-upgrade' }
+            };
+            
+            const catInfo = categoryInfo[zone.category] || categoryInfo.pemanfaatan;
+            
+            content.innerHTML = `
+                <div class="text-center mb-5">
+                    <div style="font-size: 56px; margin-bottom: 14px;">${zone.icon}</div>
+                    <h3 class="text-2xl font-extrabold text-gray-800 mb-3">${zone.name}</h3>
+                    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold mb-4" style="background: ${catInfo.color}20; color: ${catInfo.color};">
+                        <span>${catInfo.label}</span>
+                    </div>
+                    <div class="text-sm text-gray-700 mb-4">Level: <span class="font-bold text-blue-600">${levelNames[currentLevel]}</span></div>
+                </div>
+                
+                <div class="mb-5 p-4 bg-gradient-to-r from-yellow-50 to-amber-50 border-2 border-yellow-400 rounded-xl">
+                    <div class="font-bold text-amber-800 text-sm mb-2">⬆️ Upgrade ke Level ${nextLevel}: ${levelNames[nextLevel]}</div>
+                    <div class="text-xs text-amber-700 mb-3">${catInfo.desc}</div>
+                    <div class="text-xs text-amber-900 font-semibold mb-2">📋 Jenis Investasi:</div>
+                    <div class="text-xs text-amber-800 leading-relaxed">${zone.upgradeType || 'Pengembangan infrastruktur zona'}</div>
+                </div>
+                
+                <div class="bg-gradient-to-r from-blue-50 to-cyan-50 p-5 rounded-xl mb-5 space-y-3 border-2 border-blue-200">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-semibold text-gray-700">💰 Biaya Upgrade:</span>
+                        <span class="font-extrabold text-lg text-red-600">Rp ${upgradeCost.toLocaleString('id-ID')}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-semibold text-gray-700">📊 Sewa Sekarang:</span>
+                        <span class="font-extrabold text-blue-600">Rp ${calculateRent(zoneIndex, currentPlayer).toLocaleString('id-ID')}</span>
+                    </div>
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-semibold text-gray-700">📈 Sewa Setelah Upgrade:</span>
+                        <span class="font-extrabold text-green-600">Rp ${Math.floor(zone.rent * [1.5, 2.5, 4][currentLevel]).toLocaleString('id-ID')}</span>
+                    </div>
+                    <div class="flex justify-between items-center pt-2 border-t-2 border-blue-300">
+                        <span class="text-sm font-semibold text-gray-700">��� Dana Anda:</span>
+                        <span class="font-extrabold text-lg ${currentPlayer.money >= upgradeCost ? 'text-green-600' : 'text-red-600'}">
+                            Rp ${currentPlayer.money.toLocaleString('id-ID')}
+                        </span>
+                    </div>
+                </div>
+                
+                ${zone.conservationBonus && nextLevel === 3 ? `
+                <div class="mb-5 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-lg">
+                    <div class="font-bold text-green-800 text-sm mb-1">🌱 Bonus Konservasi Level 3!</div>
+                    <p class="text-xs text-green-700">Upgrade ke Level 3 = Bonus Rp 500.000 dari Bank!</p>
+                </div>
+                ` : ''}
+                
+                <div class="flex gap-3">
+                    <button id="upgradeBtn" class="btn flex-1 text-white shadow-xl" style="background: #0891b2;" ${currentPlayer.money < upgradeCost ? 'disabled' : ''}>
+                        ⬆️ Upgrade Zona
+                    </button>
+                    <button id="cancelUpgradeBtn" class="btn flex-1 text-gray-700 shadow-lg" style="background: #e5e7eb;">
+                        ✖️ Batal
+                    </button>
+                </div>
+            `;
+            
+            document.getElementById('upgradeBtn').addEventListener('click', () => {
+                if (currentPlayer.money >= upgradeCost) {
+                    currentPlayer.money -= upgradeCost;
+                    gameState.propertyLevels[zoneIndex] = nextLevel;
+                    
+                    if (zone.conservationBonus && nextLevel === 3) {
+                        currentPlayer.money += 500000;
+                        showToast(`🌱 Upgrade ${zone.name} ke Level 3 + Bonus Konservasi Rp 500.000!`, 'success');
+                    } else {
+                        showToast(`⬆️ ${zone.name} naik ke Level ${nextLevel}!`, 'success');
+                    }
+                    
+                    modal.classList.remove('active');
+                    updateUI();
+                }
+            });
+            
+            document.getElementById('cancelUpgradeBtn').addEventListener('click', () => {
+                modal.classList.remove('active');
+            });
+            
+            modal.classList.add('active');
+        }
+
+        function drawCard(deck) {
+            const card = deck[Math.floor(Math.random() * deck.length)];
+            const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+            
+            const modal = document.getElementById('cardModal');
+            const content = document.getElementById('cardModalContent');
+            
+            const cardType = deck === chanceCards ? 'Kartu Kesempatan' : 'Dana Umum';
+            const cardIcon = deck === chanceCards ? '🎴' : '📋';
+            const cardColor = deck === chanceCards ? '#0891b2' : '#8b5cf6';
+            
+            content.innerHTML = `
+                <div class="text-center mb-5" style="background: linear-gradient(135deg, ${cardColor} 0%, #0c4a6e 100%); margin: -32px -32px 24px -32px; padding: 32px; border-radius: 20px 20px 0 0;">
+                    <div style="font-size: 64px; margin-bottom: 12px;">${cardIcon}</div>
+                    <h3 class="text-lg font-bold text-white opacity-90 mb-2 uppercase tracking-wider">${cardType}</h3>
+                    <h2 class="text-2xl md:text-3xl font-extrabold text-white mb-3">${card.title}</h2>
+                </div>
+                <div class="mb-6">
+                    <p class="text-base text-gray-800 leading-relaxed text-center px-2">${card.desc}</p>
+                </div>
+                <button id="cardOkBtn" class="btn w-full text-white shadow-xl" style="background: ${cardColor};">
+                    ✓ OK
+                </button>
+            `;
+            
+            document.getElementById('cardOkBtn').addEventListener('click', () => {
+                card.effect(currentPlayer, gameState);
+                modal.classList.remove('active');
+                updateUI();
+                setTimeout(() => {
+                    endTurn();
+                }, 500);
+            });
+            
+            modal.classList.add('active');
+        }
+
+        function showBuyFromOpponentModal(zoneIndex, owner) {
+            const zone = zones[zoneIndex];
+            const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+            const modal = document.getElementById('propertyModal');
+            const content = document.getElementById('propertyModalContent');
+            const currentLevel = gameState.propertyLevels[zoneIndex] || 0;
+            
+            // Hitung harga beli dari lawan: harga zona + nilai upgrade + 50% markup
+            const basePrice = zone.price;
+            const upgradeValue = basePrice * currentLevel * 0.5;
+            const buyoutPrice = Math.floor((basePrice + upgradeValue) * 1.5);
+            
+            const categoryColors = {
+                pemanfaatan: '#0284c7',
+                konservasi: '#16a34a',
+                strategis: '#dc2626',
+                station: '#6b7280',
+                utility: '#6b7280'
+            };
+            
+            const catColor = categoryColors[zone.category] || '#6b7280';
+            const levelNames = ['Dasar', 'Pengelolaan', 'Optimalisasi', 'Berkelanjutan'];
+            
+            content.innerHTML = `
+                <div class="text-center mb-5">
+                    <div style="font-size: 56px; margin-bottom: 14px;">${zone.icon}</div>
+                    <h3 class="text-2xl font-extrabold text-gray-800 mb-3">${zone.name}</h3>
+                    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold mb-3" style="background: ${owner.color}20; color: ${owner.color};">
+                        <span>Dimiliki: ${owner.name}</span>
+                    </div>
+                    ${currentLevel > 0 ? `
+                    <div class="text-sm font-bold text-amber-600 mb-3">⭐ Level: ${levelNames[currentLevel]}</div>
+                    ` : ''}
+                </div>
+                
+                <div class="mb-5 p-4 bg-yellow-50 border-2 border-yellow-400 rounded-xl">
+                    <h4 class="font-bold text-yellow-900 text-base mb-2 text-center">💰 Beli Zona Ini Dari ${owner.name}?</h4>
+                    <p class="text-xs text-yellow-800 text-center leading-relaxed mb-3">
+                        Anda dapat membeli zona ini dari ${owner.name} dengan harga buyout yang sudah termasuk markup 50%
+                    </p>
+                </div>
+                
+                <div class="bg-gradient-to-r from-blue-50 to-cyan-50 p-5 rounded-xl mb-5 space-y-3 border-2 border-blue-200">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-semibold text-gray-700">💵 Harga Dasar:</span>
+                        <span class="font-bold text-gray-600">Rp ${basePrice.toLocaleString('id-ID')}</span>
+                    </div>
+                    ${currentLevel > 0 ? `
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-semibold text-gray-700">⭐ Nilai Upgrade:</span>
+                        <span class="font-bold text-blue-600">Rp ${upgradeValue.toLocaleString('id-ID')}</span>
+                    </div>
+                    ` : ''}
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-semibold text-gray-700">📈 Markup (50%):</span>
+                        <span class="font-bold text-orange-600">+ 50%</span>
+                    </div>
+                    <div class="flex justify-between items-center pt-3 border-t-2 border-blue-300">
+                        <span class="text-base font-bold text-gray-800">���� Total Harga Beli:</span>
+                        <span class="font-extrabold text-xl text-green-600">Rp ${buyoutPrice.toLocaleString('id-ID')}</span>
+                    </div>
+                    <div class="flex justify-between items-center pt-2 border-t border-blue-200">
+                        <span class="text-sm font-semibold text-gray-700">💵 Dana Anda:</span>
+                        <span class="font-extrabold text-lg ${currentPlayer.money >= buyoutPrice ? 'text-green-600' : 'text-red-600'}">
+                            Rp ${currentPlayer.money.toLocaleString('id-ID')}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="mb-5 p-3 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg">
+                    <p class="text-xs text-blue-800 leading-relaxed">
+                        ℹ️ Zona akan berpindah kepemilikan beserta level upgrade yang sudah ada. 
+                        ${owner.name} akan menerima uang sebesar Rp ${buyoutPrice.toLocaleString('id-ID')}.
+                    </p>
+                </div>
+                
+                <div class="flex gap-3">
+                    <button id="buyoutBtn" class="btn flex-1 text-white shadow-xl" style="background: #f59e0b;" ${currentPlayer.money < buyoutPrice ? 'disabled' : ''}>
+                        💰 Beli Zona
+                    </button>
+                    <button id="skipBuyoutBtn" class="btn flex-1 text-gray-700 shadow-lg" style="background: #e5e7eb;">
+                        ⏭️ Lewati
+                    </button>
+                </div>
+            `;
+            
+            document.getElementById('buyoutBtn').addEventListener('click', () => {
+                if (currentPlayer.money >= buyoutPrice) {
+                    // Transfer zona
+                    currentPlayer.money -= buyoutPrice;
+                    owner.money += buyoutPrice;
+                    
+                    // Pindahkan kepemilikan
+                    owner.properties = owner.properties.filter(p => p !== zoneIndex);
+                    currentPlayer.properties.push(zoneIndex);
+                    
+                    showToast(`✅ Berhasil membeli ${zone.name} dari ${owner.name}!`, 'success');
+                    modal.classList.remove('active');
+                    updateUI();
+                    endTurn();
+                }
+            });
+            
+            document.getElementById('skipBuyoutBtn').addEventListener('click', () => {
+                modal.classList.remove('active');
+                endTurn();
+            });
+            
+            modal.classList.add('active');
+        }
+
+        function showPropertyModal(zoneIndex, mode) {
+            const zone = zones[zoneIndex];
+            const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+            const modal = document.getElementById('propertyModal');
+            const content = document.getElementById('propertyModalContent');
+            
+            const categoryColors = {
+                pemanfaatan: '#0284c7',
+                konservasi: '#16a34a',
+                strategis: '#dc2626',
+                station: '#6b7280',
+                utility: '#6b7280'
+            };
+            
+            const categoryLabels = {
+                pemanfaatan: 'Zona Pemanfaatan',
+                konservasi: 'Zona Konservasi',
+                strategis: 'Zona Strategis Nasional',
+                station: 'Pelabuhan',
+                utility: 'Utilitas'
+            };
+            
+            const catColor = categoryColors[zone.category] || '#6b7280';
+            const catLabel = categoryLabels[zone.category] || 'Zona Laut';
+            
+            if (mode === 'buy') {
+                content.innerHTML = `
+                    <div class="text-center mb-5">
+                        <div style="font-size: 56px; margin-bottom: 14px;">${zone.icon}</div>
+                        <h3 class="text-2xl font-extrabold text-gray-800 mb-3">${zone.name}</h3>
+                        <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold mb-4" style="background: ${catColor}20; color: ${catColor};">
+                            <span>${catLabel}</span>
+                        </div>
+                        <p class="text-sm text-gray-700 leading-relaxed mb-4 px-2">${zone.desc}</p>
+                    </div>
+                    
+                    <div class="mb-5 p-4 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg">
+                        <div class="font-bold text-blue-800 text-sm mb-1">💡 Dampak Zona:</div>
+                        <p class="text-xs text-blue-700 leading-relaxed">${zone.impact}</p>
+                    </div>
+                    
+                    <div class="mb-5 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-lg">
+                        <div class="font-bold text-green-800 text-sm mb-1">✅ Manfaat:</div>
+                        <p class="text-xs text-green-700 leading-relaxed">${zone.benefit}</p>
+                    </div>
+                    
+                    <div class="mb-5 p-4 bg-purple-50 border-l-4 border-purple-500 rounded-r-lg">
+                        <div class="font-bold text-purple-800 text-sm mb-1">📜 Regulasi:</div>
+                        <p class="text-xs text-purple-700 leading-relaxed">${zone.regulation}</p>
+                    </div>
+                    
+                    <div class="bg-gradient-to-r from-blue-50 to-cyan-50 p-5 rounded-xl mb-5 space-y-3 border-2 border-blue-200">
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-semibold text-gray-700">💵 Harga:</span>
+                            <span class="font-extrabold text-lg text-green-600">Rp ${zone.price.toLocaleString('id-ID')}</span>
+                        </div>
+                        ${zone.rent > 0 ? `
+                        <div class="flex justify-between items-center">
+                            <span class="text-sm font-semibold text-gray-700">📊 Sewa Dasar:</span>
+                            <span class="font-extrabold text-lg text-blue-600">Rp ${zone.rent.toLocaleString('id-ID')}</span>
+                        </div>` : ''}
+                        <div class="flex justify-between items-center pt-2 border-t-2 border-blue-300">
+                            <span class="text-sm font-semibold text-gray-700">��� Dana Anda:</span>
+                            <span class="font-extrabold text-lg ${currentPlayer.money >= zone.price ? 'text-green-600' : 'text-red-600'}">
+                                Rp ${currentPlayer.money.toLocaleString('id-ID')}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="flex gap-3">
+                        <button id="buyBtn" class="btn flex-1 text-white shadow-xl" style="background: ${config.primary_color || defaultConfig.primary_color};" ${currentPlayer.money < zone.price ? 'disabled' : ''}>
+                            ✅ Beli
+                        </button>
+                        <button id="skipBtn" class="btn flex-1 text-gray-700 shadow-lg" style="background: #e5e7eb;">
+                            ⏭️ Lewati
+                        </button>
+                    </div>
+                `;
+                
+                document.getElementById('buyBtn').addEventListener('click', () => {
+                    if (currentPlayer.money >= zone.price) {
+                        currentPlayer.money -= zone.price;
+                        currentPlayer.properties.push(zoneIndex);
+                        showToast(`✅ Berhasil membeli ${zone.name}!`, 'success');
+                        modal.classList.remove('active');
+                        updateUI();
+                        endTurn();
+                    }
+                });
+                
+                document.getElementById('skipBtn').addEventListener('click', () => {
+                    modal.classList.remove('active');
+                    endTurn();
+                });
+            }
+            
+            modal.classList.add('active');
+        }
+
+        function showPropertyDetails(zoneIndex) {
+            const zone = zones[zoneIndex];
+            const owner = gameState.players.find(p => p.properties.includes(zoneIndex));
+            const modal = document.getElementById('propertyModal');
+            const content = document.getElementById('propertyModalContent');
+            const currentLevel = gameState.propertyLevels[zoneIndex] || 0;
+            const levelNames = ['Dasar', 'Pengelolaan', 'Optimalisasi', 'Berkelanjutan'];
+            
+            const categoryColors = {
+                pemanfaatan: '#0284c7',
+                konservasi: '#16a34a',
+                strategis: '#dc2626',
+                station: '#6b7280',
+                utility: '#6b7280'
+            };
+            
+            const categoryLabels = {
+                pemanfaatan: 'Zona Pemanfaatan',
+                konservasi: 'Zona Konservasi',
+                strategis: 'Zona Strategis Nasional',
+                station: 'Pelabuhan',
+                utility: 'Utilitas'
+            };
+            
+            const catColor = categoryColors[zone.category] || '#6b7280';
+            const catLabel = categoryLabels[zone.category] || 'Zona Laut';
+            
+            content.innerHTML = `
+                <div class="text-center mb-5">
+                    <div style="font-size: 56px; margin-bottom: 14px;">${zone.icon}</div>
+                    <h3 class="text-2xl font-extrabold text-gray-800 mb-3">${zone.name}</h3>
+                    <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm font-bold mb-4" style="background: ${catColor}20; color: ${catColor};">
+                        <span>${catLabel}</span>
+                    </div>
+                    ${owner ? `<div class="text-sm font-bold mb-2" style="color: ${owner.color};">Dimiliki: ${owner.name}</div>` : ''}
+                    ${currentLevel > 0 ? `<div class="text-sm font-bold text-amber-600">⭐ Level: ${levelNames[currentLevel]}</div>` : ''}
+                    <p class="text-sm text-gray-700 leading-relaxed mb-4 px-2 mt-3">${zone.desc}</p>
+                </div>
+                
+                <div class="mb-4 p-4 bg-blue-50 border-l-4 border-blue-500 rounded-r-lg">
+                    <div class="font-bold text-blue-800 text-sm mb-1">💡 Dampak Zona:</div>
+                    <p class="text-xs text-blue-700 leading-relaxed">${zone.impact}</p>
+                </div>
+                
+                <div class="mb-4 p-4 bg-green-50 border-l-4 border-green-500 rounded-r-lg">
+                    <div class="font-bold text-green-800 text-sm mb-1">✅ Manfaat:</div>
+                    <p class="text-xs text-green-700 leading-relaxed">${zone.benefit}</p>
+                </div>
+                
+                <div class="mb-5 p-4 bg-purple-50 border-l-4 border-purple-500 rounded-r-lg">
+                    <div class="font-bold text-purple-800 text-sm mb-1">📜 Regulasi:</div>
+                    <p class="text-xs text-purple-700 leading-relaxed">${zone.regulation}</p>
+                </div>
+                
+                <div class="bg-gradient-to-r from-gray-50 to-gray-100 p-5 rounded-xl mb-5 space-y-3 border-2 border-gray-300">
+                    ${zone.price > 0 ? `
+                    <div class="flex justify-between">
+                        <span class="text-sm font-semibold text-gray-700">💵 Harga:</span>
+                        <span class="font-extrabold text-green-600">Rp ${zone.price.toLocaleString('id-ID')}</span>
+                    </div>` : ''}
+                    ${zone.rent > 0 && owner ? `
+                    <div class="flex justify-between">
+                        <span class="text-sm font-semibold text-gray-700">📊 Sewa Saat Ini:</span>
+                        <span class="font-extrabold text-blue-600">Rp ${calculateRent(zoneIndex, owner).toLocaleString('id-ID')}</span>
+                    </div>` : ''}
+                    ${zone.canUpgrade && currentLevel < 3 ? `
+                    <div class="pt-2 border-t border-gray-400">
+                        <div class="text-xs text-gray-600 text-center">💡 Klik zona saat giliran Anda untuk upgrade!</div>
+                    </div>` : ''}
+                </div>
+                
+                <button id="closeBtn" class="btn w-full text-gray-700 shadow-lg" style="background: #e5e7eb;">
+                    Tutup
+                </button>
+            `;
+            
+            document.getElementById('closeBtn').addEventListener('click', () => {
+                modal.classList.remove('active');
+            });
+            
+            modal.classList.add('active');
+        }
+
+        function endTurn() {
+            const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+            
+            if (currentPlayer.isAI && currentPlayer.properties.length > 0) {
+                const upgradeProbability = { easy: 0.3, medium: 0.5, hard: 0.75 }[currentPlayer.difficulty];
+                const upgradableProps = currentPlayer.properties.filter(prop => {
+                    const zone = zones[prop];
+                    const currentLevel = gameState.propertyLevels[prop] || 0;
+                    const upgradeCost = Math.floor(zone.price * [0.5, 0.75, 1][currentLevel]);
+                    return zone.canUpgrade && currentLevel < 3 && currentPlayer.money >= upgradeCost;
+                });
+                
+                if (upgradableProps.length > 0 && Math.random() < upgradeProbability) {
+                    const propToUpgrade = upgradableProps[Math.floor(Math.random() * upgradableProps.length)];
+                    const zone = zones[propToUpgrade];
+                    const currentLevel = gameState.propertyLevels[propToUpgrade] || 0;
+                    const upgradeCost = Math.floor(zone.price * [0.5, 0.75, 1][currentLevel]);
+                    
+                    setTimeout(() => {
+                        currentPlayer.money -= upgradeCost;
+                        gameState.propertyLevels[propToUpgrade] = currentLevel + 1;
+                        
+                        if (zone.conservationBonus && gameState.propertyLevels[propToUpgrade] === 3) {
+                            currentPlayer.money += 500000;
+                            showToast(`🤖 ${currentPlayer.name} upgrade ${zone.name} ke Level 3 + Bonus Rp 500k!`, 'info');
+                        } else {
+                            showToast(`🤖 ${currentPlayer.name} upgrade ${zone.name} ke Level ${gameState.propertyLevels[propToUpgrade]}`, 'info');
+                        }
+                        
+                        updateUI();
+                        proceedToNextPlayer();
+                    }, 1000);
+                    return;
+                }
+            }
+            
+            proceedToNextPlayer();
+        }
+
+        function proceedToNextPlayer() {
+            gameState.currentPlayerIndex = (gameState.currentPlayerIndex + 1) % gameState.players.length;
+            gameState.isRolling = false;
+            
+            const rollBtn = document.getElementById('rollBtn');
+            const rollBtnCenter = document.getElementById('rollBtnCenter');
+            rollBtn.disabled = false;
+            rollBtnCenter.disabled = false;
+            
+            updateUI();
+            
+            const nextPlayer = gameState.players[gameState.currentPlayerIndex];
+            if (nextPlayer.isAI) {
+                setTimeout(() => {
+                    rollDice();
+                }, 1200);
+            }
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            
+            const colors = {
+                success: '#16a34a',
+                error: '#dc2626',
+                warning: '#f59e0b',
+                info: '#0284c7'
+            };
+            
+            toast.style.borderLeftColor = colors[type];
+            
+            toast.innerHTML = `
+                <div style="display: flex; align-items: center; gap: 14px;">
+                    <div style="font-weight: 700; font-size: 15px; color: #1f2937; line-height: 1.4;">${message}</div>
+                </div>
+            `;
+            
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateX(120px)';
+                setTimeout(() => toast.remove(), 400);
+            }, 3500);
+        }
+
+        document.getElementById('rollBtn').addEventListener('click', rollDice);
+        document.getElementById('rollBtnCenter').addEventListener('click', rollDice);
+        document.getElementById('dice1').addEventListener('click', rollDice);
+        document.getElementById('dice2').addEventListener('click', rollDice);
+
+        document.getElementById('payJailBtn').addEventListener('click', () => {
+            const currentPlayer = gameState.players[gameState.currentPlayerIndex];
+            if (currentPlayer.money >= 500000) {
+                currentPlayer.money -= 500000;
+                currentPlayer.inJail = false;
+                currentPlayer.jailTurns = 0;
+                showToast('💰 Bayar denda Rp 500.000 - Bebas!', 'success');
+                updateUI();
+            } else {
+                showToast('❌ Dana tidak cukup!', 'error');
+            }
+        });
+
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        });
+
+        async function onConfigChange(newConfig) {
+            config = { ...config, ...newConfig };
+            
+            const baseSize = config.font_size || defaultConfig.font_size;
+            const customFont = config.font_family || defaultConfig.font_family;
+            const fontStack = `${customFont}, Exo 2, sans-serif`;
+            
+            document.getElementById('mainTitle').textContent = config.game_title || defaultConfig.game_title;
+            document.getElementById('mainTitle').style.fontFamily = fontStack;
+            document.getElementById('mainTitle').style.fontSize = `${baseSize * 2.5}px`;
+            
+            document.getElementById('mainTagline').textContent = config.tagline || defaultConfig.tagline;
+            document.getElementById('mainTagline').style.fontFamily = fontStack;
+            document.getElementById('mainTagline').style.fontSize = `${baseSize * 1.2}px`;
+            
+            document.getElementById('gameTitle').textContent = config.game_title || defaultConfig.game_title;
+            document.getElementById('gameTitle').style.fontFamily = fontStack;
+            document.getElementById('gameTitle').style.fontSize = `${baseSize * 2}px`;
+            
+            document.getElementById('gameTagline').textContent = config.tagline || defaultConfig.tagline;
+            document.getElementById('gameTagline').style.fontFamily = fontStack;
+            document.getElementById('gameTagline').style.fontSize = `${baseSize}px`;
+            
+            document.getElementById('centerTitle').textContent = config.center_title || defaultConfig.center_title;
+            document.getElementById('centerTitle').style.fontFamily = fontStack;
+            
+            document.getElementById('centerDirectorate').textContent = config.center_directorate || defaultConfig.center_directorate;
+            document.getElementById('centerDirectorate').style.fontFamily = fontStack;
+            
+            document.getElementById('centerSubtitle').textContent = config.center_subtitle || defaultConfig.center_subtitle;
+            document.getElementById('centerSubtitle').style.fontFamily = fontStack;
+            
+            document.getElementById('modeScreen').style.background = `linear-gradient(135deg, ${config.background_color || defaultConfig.background_color} 0%, ${config.secondary_color || defaultConfig.secondary_color} 100%)`;
+            
+            document.getElementById('gameScreen').style.background = `linear-gradient(135deg, ${config.background_color || defaultConfig.background_color} 0%, ${config.secondary_color || defaultConfig.secondary_color} 100%)`;
+            
+            document.getElementById('rollBtn').style.background = config.primary_color || defaultConfig.primary_color;
+            document.getElementById('rollBtnCenter').style.background = config.primary_color || defaultConfig.primary_color;
+            
+            const startMoney = parseInt((config.start_money || defaultConfig.start_money).replace(/[^0-9]/g, ''));
+            if (!isNaN(startMoney) && !gameState.gameStarted) {
+                gameState.players.forEach(player => {
+                    player.money = startMoney;
+                    player.completedFirstRound = false;
+                });
+            }
+            
+            if (gameState.gameStarted) {
+                updateUI();
+            }
+        }
+
+        if (window.elementSdk) {
+            window.elementSdk.init({
+                defaultConfig,
+                onConfigChange,
+                mapToCapabilities: (config) => ({
+                    recolorables: [
+                        {
+                            get: () => config.background_color || defaultConfig.background_color,
+                            set: (value) => {
+                                config.background_color = value;
+                                window.elementSdk.setConfig({ background_color: value });
+                            }
+                        },
+                        {
+                            get: () => config.secondary_color || defaultConfig.secondary_color,
+                            set: (value) => {
+                                config.secondary_color = value;
+                                window.elementSdk.setConfig({ secondary_color: value });
+                            }
+                        },
+                        {
+                            get: () => config.primary_color || defaultConfig.primary_color,
+                            set: (value) => {
+                                config.primary_color = value;
+                                window.elementSdk.setConfig({ primary_color: value });
+                            }
+                        },
+                        {
+                            get: () => config.text_color || defaultConfig.text_color,
+                            set: (value) => {
+                                config.text_color = value;
+                                window.elementSdk.setConfig({ text_color: value });
+                            }
+                        },
+                        {
+                            get: () => config.accent_color || defaultConfig.accent_color,
+                            set: (value) => {
+                                config.accent_color = value;
+                                window.elementSdk.setConfig({ accent_color: value });
+                            }
+                        }
+                    ],
+                    borderables: [],
+                    fontEditable: {
+                        get: () => config.font_family || defaultConfig.font_family,
+                        set: (value) => {
+                            config.font_family = value;
+                            window.elementSdk.setConfig({ font_family: value });
+                        }
+                    },
+                    fontSizeable: {
+                        get: () => config.font_size || defaultConfig.font_size,
+                        set: (value) => {
+                            config.font_size = value;
+                            window.elementSdk.setConfig({ font_size: value });
+                        }
+                    }
+                }),
+                mapToEditPanelValues: (config) => new Map([
+                    ["game_title", config.game_title || defaultConfig.game_title],
+                    ["tagline", config.tagline || defaultConfig.tagline],
+                    ["center_title", config.center_title || defaultConfig.center_title],
+                    ["center_directorate", config.center_directorate || defaultConfig.center_directorate],
+                    ["center_subtitle", config.center_subtitle || defaultConfig.center_subtitle],
+                    ["start_money", config.start_money || defaultConfig.start_money],
+                    ["start_bonus", config.start_bonus || defaultConfig.start_bonus]
+                ])
+            });
+        }
+
+        window.addEventListener('resize', () => {
+            if (gameState.gameStarted) {
+                document.getElementById('board').innerHTML = '';
+                createBoard();
+                gameState.players.forEach((_, index) => updatePlayerPosition(index));
+                updateOwnedProperties();
+            }
+        });
+    </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d58167562cd81c2',t:'MTc3MjM2NzMzMy4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
